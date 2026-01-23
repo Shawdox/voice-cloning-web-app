@@ -1,0 +1,8 @@
+
+{
+  "name": "VoiceClone Pro Console",
+  "description": "A high-end AI voice cloning and speech synthesis dashboard featuring real-time cloning progress, text-to-speech customization, and generation history.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

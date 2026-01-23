@@ -1,0 +1,65 @@
+
+import { Voice, GenerationRecord } from './types';
+
+export const INITIAL_VOICES: Voice[] = [
+  {
+    id: 'v1',
+    name: '温暖女声',
+    type: 'user',
+    status: 'ready',
+    createdDate: '2023-11-20',
+    tag: '已选择'
+  },
+  {
+    id: 'v2',
+    name: '我的播客声音',
+    type: 'user',
+    status: 'training',
+    progress: 65,
+    createdDate: '2023-11-24'
+  },
+  {
+    id: 's1',
+    name: '标准男声',
+    type: 'system',
+    status: 'ready',
+    createdDate: 'System',
+    tag: '基础'
+  },
+  {
+    id: 's2',
+    name: '甜美童声',
+    type: 'system',
+    status: 'ready',
+    createdDate: 'System',
+    tag: '推荐'
+  },
+  {
+    id: 's3',
+    name: '新闻主播',
+    type: 'system',
+    status: 'ready',
+    createdDate: 'System'
+  }
+];
+
+export const INITIAL_HISTORY: GenerationRecord[] = [
+  {
+    id: 'h1',
+    voiceName: '温暖女声',
+    text: '“今天的天气真不错，适合出去散散步，感受一下大自然的美好...”',
+    date: '2023-11-22 14:30',
+    duration: '03:45',
+    currentTime: '01:12',
+    progress: 35
+  },
+  {
+    id: 'h2',
+    voiceName: '深沉男低音',
+    text: '“深度学习在语音合成领域的应用已经非常成熟，目前的克隆技术已经能够实现...”',
+    date: '2023-11-21 10:15',
+    duration: '00:58',
+    currentTime: '00:00',
+    progress: 0
+  }
+];
