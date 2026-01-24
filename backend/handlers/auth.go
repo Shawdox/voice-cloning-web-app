@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"regexp"
 	"voice-clone-backend/config"
@@ -10,7 +11,49 @@ import (
 	"voice-clone-backend/utils"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
+
+// 将验证错误转换为用户友好的中文消息
+func getValidationErrorMsg(err error) string {
+	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+		for _, fieldError := range validationErrors {
+			field := fieldError.Field()
+			tag := fieldError.Tag()
+
+			// 根据字段和标签返回友好的错误消息
+			switch field {
+			case "Email":
+				if tag == "required" {
+					return "请输入邮箱地址"
+				} else if tag == "email" {
+					return "邮箱格式不正确"
+				}
+			case "Password":
+				if tag == "required" {
+					return "请输入密码"
+				} else if tag == "min" {
+					return "密码长度不能少于 6 个字符"
+				}
+			case "LoginID":
+				if tag == "required" {
+					return "请输入邮箱或手机号"
+				}
+			case "Phone":
+				if tag == "required" {
+					return "请输入手机号"
+				}
+			case "SmsCode":
+				if tag == "required" {
+					return "请输入短信验证码"
+				}
+			}
+		}
+	}
+
+	// 如果无法解析，返回通用错误消息
+	return "请求参数错误，请检查输入"
+}
 
 type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
@@ -33,7 +76,8 @@ type SendSMSRequest struct {
 func SendSMS(c *gin.Context) {
 	var req SendSMSRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		log.Printf("SendSMS binding error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": getValidationErrorMsg(err)})
 		return
 	}
 
@@ -47,7 +91,8 @@ func SendSMS(c *gin.Context) {
 	// 发送短信验证码
 	err := services.SendSMSCode(req.Phone)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "发送验证码失败: " + err.Error()})
+		log.Printf("SendSMS service error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "发送验证码失败，请稍后重试"})
 		return
 	}
 
@@ -58,9 +103,16 @@ func SendSMS(c *gin.Context) {
 func Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		// 添加详细日志
+		log.Printf("Register binding error: %v", err)
+		// 返回用户友好的错误消息
+		c.JSON(http.StatusBadRequest, gin.H{"error": getValidationErrorMsg(err)})
 		return
 	}
+
+	// 打印接收到的请求数据（调试用）
+	log.Printf("Register request - Email: %s, Phone: %s, HasPassword: %v, HasSmsCode: %v",
+		req.Email, req.Phone, req.Password != "", req.SmsCode != "")
 
 	var phonePtr *string
 	if req.Phone != "" {
@@ -163,9 +215,15 @@ func Register(c *gin.Context) {
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误"})
+		// 添加详细日志
+		log.Printf("Login binding error: %v", err)
+		// 返回用户友好的错误消息
+		c.JSON(http.StatusBadRequest, gin.H{"error": getValidationErrorMsg(err)})
 		return
 	}
+
+	// 打印接收到的请求数据（调试用）
+	log.Printf("Login request - LoginID: %s, HasPassword: %v", req.LoginID, req.Password != "")
 
 	var user models.User
 	// 尝试通过邮箱或手机号查找用户
@@ -220,7 +278,7 @@ func GetProfile(c *gin.Context) {
 
 	var user models.User
 	if err := database.DB.First(&user, userID).Error; err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{Message: "用户不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
 		return
 	}
 
@@ -230,34 +288,35 @@ func GetProfile(c *gin.Context) {
 // SMS登录请求
 type LoginWithSMSRequest struct {
 	Phone   string `json:"phone" binding:"required"`
-	SmsCode string `json:"smsCode" binding:"required"` // camelCase
+	SmsCode string `json:"sms_code" binding:"required"`
 }
 
 // SMS验证码登录
 func LoginWithSMS(c *gin.Context) {
 	var req LoginWithSMSRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "请求参数错误: " + err.Error()})
+		log.Printf("LoginWithSMS binding error: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": getValidationErrorMsg(err)})
 		return
 	}
 
 	// 验证短信验证码
 	valid, err := services.VerifySMSCode(req.Phone, req.SmsCode)
 	if err != nil || !valid {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "验证码错误或已过期"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "验证码错误或已过期"})
 		return
 	}
 
 	// 查找用户
 	var user models.User
 	if err := database.DB.Where("phone = ?", req.Phone).First(&user).Error; err != nil {
-		c.JSON(http.StatusUnauthorized, models.ErrorResponse{Message: "该手机号未注册"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "该手机号未注册"})
 		return
 	}
 
 	// 检查用户是否被禁用
 	if !user.IsActive {
-		c.JSON(http.StatusForbidden, models.ErrorResponse{Message: "账号已被禁用"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "账号已被禁用"})
 		return
 	}
 
@@ -299,7 +358,7 @@ func ChangePassword(c *gin.Context) {
 	}
 
 	// 验证旧密码
-	if !utils.CheckPasswordHash(req.OldPassword, user.PasswordHash) {
+	if !utils.CheckPassword(req.OldPassword, user.PasswordHash) {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "原密码错误"})
 		return
 	}

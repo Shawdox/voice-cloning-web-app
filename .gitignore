@@ -5,3 +5,4 @@ data/
 *.zip
 *.mp3
 test_scripts/*.mp3
+.run.pids

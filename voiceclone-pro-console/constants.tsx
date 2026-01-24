@@ -3,22 +3,6 @@ import { Voice, GenerationRecord } from './types';
 
 export const INITIAL_VOICES: Voice[] = [
   {
-    id: 'v1',
-    name: '温暖女声',
-    type: 'user',
-    status: 'ready',
-    createdDate: '2023-11-20',
-    tag: '已选择'
-  },
-  {
-    id: 'v2',
-    name: '我的播客声音',
-    type: 'user',
-    status: 'training',
-    progress: 65,
-    createdDate: '2023-11-24'
-  },
-  {
     id: 's1',
     name: '标准男声',
     type: 'system',

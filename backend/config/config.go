@@ -117,7 +117,7 @@ func LoadConfig() {
 		},
 		Server: ServerConfig{
 			Port:        getEnv("SERVER_PORT", "8080"),
-			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+			FrontendURL: getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
 		Credits: CreditsConfig{
 			Initial:           initialCredits,

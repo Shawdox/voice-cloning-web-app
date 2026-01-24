@@ -1,15 +1,30 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Voice } from '../types';
+import { voiceAPI, APIError } from '../services/api';
 
 interface VoiceCloningSectionProps {
   voices: Voice[];
   isLoggedIn: boolean;
   onLoginRequest?: () => void;
+  onVoiceCreated?: () => void;
 }
 
-const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLoggedIn, onLoginRequest }) => {
+type UploadStep = 'idle' | 'naming' | 'uploading' | 'creating' | 'success' | 'error';
+
+const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
+  voices,
+  isLoggedIn,
+  onLoginRequest,
+  onVoiceCreated
+}) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadStep, setUploadStep] = useState<UploadStep>('idle');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [voiceName, setVoiceName] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filter voices that are currently in the 'training' status
   const trainingVoices = voices.filter(v => v.status === 'training');
@@ -38,7 +53,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      handleFiles(files);
+      handleFileSelect(files[0]);
     }
   };
 
@@ -49,14 +64,73 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
     }
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleFiles(files);
+      handleFileSelect(files[0]);
     }
   };
 
-  const handleFiles = (files: FileList) => {
-    const file = files[0];
-    console.log(`Received file: ${file.name}, size: ${file.size} bytes`);
-    alert(`文件 "${file.name}" 已接收！准备开始声音克隆。`);
+  const handleFileSelect = (file: File) => {
+    // Generate default name from filename
+    const defaultName = file.name.replace(/\.[^/.]+$/, '');
+    setSelectedFile(file);
+    setVoiceName(defaultName);
+    setUploadStep('naming');
+    setErrorMessage('');
+  };
+
+  const handleCancelUpload = () => {
+    setUploadStep('idle');
+    setSelectedFile(null);
+    setVoiceName('');
+    setUploadProgress(0);
+    setErrorMessage('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleStartCloning = async () => {
+    if (!selectedFile || !voiceName.trim()) return;
+
+    try {
+      // Step 1: Upload audio file
+      setUploadStep('uploading');
+      setUploadProgress(30);
+
+      const uploadResult = await voiceAPI.uploadAudio(selectedFile);
+      setUploadProgress(60);
+
+      // Step 2: Create voice clone task
+      setUploadStep('creating');
+      setUploadProgress(80);
+
+      await voiceAPI.create({
+        name: voiceName.trim(),
+        audioFileUrl: uploadResult.file_url,
+        audioFileName: uploadResult.filename,
+        withTranscript: false,
+      });
+
+      setUploadProgress(100);
+      setUploadStep('success');
+
+      // Notify parent to refresh voice list
+      if (onVoiceCreated) {
+        onVoiceCreated();
+      }
+
+      // Reset after 2 seconds
+      setTimeout(() => {
+        handleCancelUpload();
+      }, 2000);
+
+    } catch (err) {
+      setUploadStep('error');
+      if (err instanceof APIError) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage('音色克隆失败，请重试');
+      }
+    }
   };
 
   return (
@@ -83,12 +157,13 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
             : 'border-dashed border-pink-200 bg-white hover:border-primary/40 hover:bg-gray-50/30'
         }`}
       >
-        <input 
-          type="file" 
+        <input
+          type="file"
+          ref={fileInputRef}
           onChange={handleFileInput}
-          disabled={!isLoggedIn}
-          className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-          accept=".mp3,.wav" 
+          disabled={!isLoggedIn || uploadStep !== 'idle'}
+          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+          accept=".mp3,.wav"
         />
         
         {!isLoggedIn && (
@@ -149,7 +224,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
                     </div>
                   </div>
                   <span className="text-xs font-black text-primary bg-white px-2 py-0.5 rounded-lg border border-pink-50 shadow-sm">
-                    {voice.progress}%
+                    {voice.progress}
                   </span>
                 </div>
                 
@@ -173,6 +248,77 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
         </div>
       )}
 
+      {/* Voice Naming Modal */}
+      {uploadStep !== 'idle' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={uploadStep === 'naming' || uploadStep === 'error' ? handleCancelUpload : undefined}></div>
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative z-10 p-6 animate-[scaleIn_0.2s]">
+            {uploadStep === 'naming' && (
+              <>
+                <h3 className="text-lg font-black text-[#1c0d14] mb-4">为您的音色命名</h3>
+                <input
+                  type="text"
+                  value={voiceName}
+                  onChange={(e) => setVoiceName(e.target.value)}
+                  placeholder="输入音色名称"
+                  className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary mb-4"
+                  autoFocus
+                />
+                <p className="text-xs text-gray-400 mb-4">
+                  文件: {selectedFile?.name} ({((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB)
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={handleCancelUpload} className="flex-1 h-11 bg-gray-100 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors">
+                    取消
+                  </button>
+                  <button onClick={handleStartCloning} disabled={!voiceName.trim()} className="flex-1 h-11 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                    开始克隆
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(uploadStep === 'uploading' || uploadStep === 'creating') && (
+              <div className="text-center py-4">
+                <div className="size-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <span className="material-symbols-outlined text-3xl text-primary animate-spin">progress_activity</span>
+                </div>
+                <h3 className="text-lg font-black text-[#1c0d14] mb-2">
+                  {uploadStep === 'uploading' ? '正在上传音频...' : '正在创建音色...'}
+                </h3>
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-2">
+                  <div className="h-full bg-primary transition-all duration-500" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+                <p className="text-xs text-gray-400">{uploadProgress}%</p>
+              </div>
+            )}
+
+            {uploadStep === 'success' && (
+              <div className="text-center py-4">
+                <div className="size-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="material-symbols-outlined text-3xl text-green-600">check_circle</span>
+                </div>
+                <h3 className="text-lg font-black text-[#1c0d14] mb-2">音色创建成功！</h3>
+                <p className="text-sm text-gray-500">音色正在后台训练中，请稍后查看</p>
+              </div>
+            )}
+
+            {uploadStep === 'error' && (
+              <div className="text-center py-4">
+                <div className="size-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                  <span className="material-symbols-outlined text-3xl text-red-600">error</span>
+                </div>
+                <h3 className="text-lg font-black text-[#1c0d14] mb-2">创建失败</h3>
+                <p className="text-sm text-red-500 mb-4">{errorMessage}</p>
+                <button onClick={handleCancelUpload} className="h-11 px-6 bg-gray-100 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors">
+                  关闭
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes shimmer {
           0% { transform: translateX(-100%); }
@@ -186,6 +332,10 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({ voices, isLog
           0% { transform: scale(1); opacity: 0.5; }
           50% { transform: scale(1.02); opacity: 0.2; }
           100% { transform: scale(1); opacity: 0.5; }
+        }
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
         }
       `}</style>
     </div>

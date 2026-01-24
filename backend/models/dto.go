@@ -9,7 +9,7 @@ type VoiceResponse struct {
 	Type          string     `json:"type"` // "user" or "system"
 	Status        string     `json:"status"`
 	Progress      *int       `json:"progress,omitempty"` // 0-100
-	CreatedDate   time.Time  `json:"createdDate"`
+	CreatedAt     time.Time  `json:"createdAt"`
 	Tag           string     `json:"tag,omitempty"`
 	IsPinned      bool       `json:"isPinned"`
 	AudioFileURL  string     `json:"audioFileUrl,omitempty"`

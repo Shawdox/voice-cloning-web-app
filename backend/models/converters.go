@@ -9,7 +9,7 @@ func (v *Voice) ToVoiceResponse() VoiceResponse {
 		Name:          v.Name,
 		Type:          "user", // 默认为用户音色
 		Status:        v.Status,
-		CreatedDate:   v.CreatedAt,
+		CreatedAt:     v.CreatedAt,
 		IsPinned:      v.IsPinned,
 		AudioFileURL:  v.AudioFileURL,
 		AudioDuration: v.AudioDuration,
@@ -28,10 +28,12 @@ func (v *Voice) ToVoiceResponse() VoiceResponse {
 
 	// 将status映射为前端期望的值
 	switch v.Status {
-	case "processing":
+	case "pending", "processing":
 		resp.Status = "training"
 	case "completed":
 		resp.Status = "ready"
+	case "failed":
+		resp.Status = "failed"
 	}
 
 	return resp
@@ -55,10 +57,15 @@ func (t *TTSTask) ToTTSTaskResponse(voiceName string) TTSTaskResponse {
 
 // ToUserProfileResponse 将User模型转换为UserProfileResponse DTO
 func (u *User) ToUserProfileResponse() UserProfileResponse {
+	phone := ""
+	if u.Phone != nil {
+		phone = *u.Phone
+	}
+
 	return UserProfileResponse{
 		ID:           u.ID,
 		Email:        u.Email,
-		Phone:        u.Phone,
+		Phone:        phone,
 		Nickname:     u.Nickname,
 		Avatar:       u.Avatar,
 		Points:       u.Credits, // 重命名为points

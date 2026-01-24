@@ -1,0 +1,316 @@
+- generic [ref=e3]:
+  - banner [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9] [cursor=pointer]:
+        - generic [ref=e11]: graphic_eq
+        - generic [ref=e12]: VoiceClone Pro
+      - navigation [ref=e13]:
+        - button "首页" [ref=e14] [cursor=pointer]
+        - button "语音生成" [ref=e15] [cursor=pointer]
+        - button "声音库" [ref=e16] [cursor=pointer]
+        - button "充值/VIP" [ref=e17] [cursor=pointer]
+        - button "个人账号" [ref=e18] [cursor=pointer]
+      - generic [ref=e19]:
+        - generic [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]:
+            - generic [ref=e22]: payments
+            - generic [ref=e23]: "0"
+          - generic [ref=e25]: add
+        - button "settings" [ref=e27] [cursor=pointer]:
+          - generic [ref=e28]: settings
+        - button "account_circle" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: account_circle
+  - main [ref=e31]:
+    - generic [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e110]:
+          - generic [ref=e112]: dashboard
+          - generic [ref=e113]:
+            - heading "智能工作台" [level=1] [ref=e114]
+            - paragraph [ref=e116]: 当前选择：标准男声
+        - generic [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]: 可用积分
+              - generic [ref=e121]: "850"
+            - button "bolt 立即充值" [ref=e122] [cursor=pointer]:
+              - generic [ref=e123]: bolt
+              - text: 立即充值
+          - generic [ref=e124]:
+            - button "help_outline 使用指南" [ref=e125] [cursor=pointer]:
+              - generic [ref=e126]: help_outline
+              - text: 使用指南
+            - button "stars VIP 专属特权" [ref=e128] [cursor=pointer]:
+              - generic [ref=e129]: stars
+              - text: VIP 专属特权
+      - generic [ref=e131]:
+        - generic [ref=e133]:
+          - generic [ref=e134]:
+            - heading "settings_voice 我的声音库" [level=3] [ref=e135]:
+              - generic [ref=e136]: settings_voice
+              - text: 我的声音库
+            - generic [ref=e137]:
+              - button "我的创作" [ref=e138] [cursor=pointer]
+              - button "系统预设" [ref=e139] [cursor=pointer]
+          - generic [ref=e140]:
+            - generic [ref=e142] [cursor=pointer]:
+              - generic [ref=e144]:
+                - img [ref=e145]
+                - generic [ref=e148]: sync
+              - generic [ref=e149]:
+                - paragraph [ref=e151]: E2E测试音色
+                - paragraph [ref=e153]:
+                  - generic [ref=e154]: 正在克隆 %
+            - generic [ref=e159] [cursor=pointer]:
+              - generic [ref=e161]:
+                - img [ref=e162]
+                - generic [ref=e165]: sync
+              - generic [ref=e166]:
+                - paragraph [ref=e168]: API测试音色
+                - paragraph [ref=e170]:
+                  - generic [ref=e171]: 正在克隆 %
+          - button "mic 管理我的音色" [ref=e176] [cursor=pointer]:
+            - generic [ref=e177]: mic
+            - text: 管理我的音色
+        - generic [ref=e178]:
+          - generic [ref=e179]:
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - generic [ref=e182]:
+                  - generic [ref=e183]: "1"
+                  - heading "声音克隆" [level=3] [ref=e184]
+                - generic [ref=e185]: 2 个任务进行中
+              - generic [ref=e186] [cursor=pointer]:
+                - button "Choose File" [ref=e187]
+                - generic [ref=e189]: cloud_upload
+                - generic [ref=e190]:
+                  - paragraph [ref=e191]: 上传参考音频文件
+                  - paragraph [ref=e192]: 限 MP3, WAV 格式
+              - generic [ref=e193]:
+                - generic [ref=e194]:
+                  - generic [ref=e195]: cyclone
+                  - heading "正在克隆的任务" [level=4] [ref=e196]
+                - generic [ref=e197]:
+                  - generic [ref=e198]:
+                    - generic [ref=e200]:
+                      - generic [ref=e202]: progress_activity
+                      - generic [ref=e203]:
+                        - paragraph [ref=e204]: E2E测试音色
+                        - paragraph [ref=e205]: 正在进行神经网络声纹优化...
+                    - generic [ref=e211]:
+                      - generic [ref=e212]: 训练开始
+                      - generic [ref=e213]: 约需 5 分钟
+                  - generic [ref=e214]:
+                    - generic [ref=e216]:
+                      - generic [ref=e218]: progress_activity
+                      - generic [ref=e219]:
+                        - paragraph [ref=e220]: API测试音色
+                        - paragraph [ref=e221]: 正在进行神经网络声纹优化...
+                    - generic [ref=e227]:
+                      - generic [ref=e228]: 训练开始
+                      - generic [ref=e229]: 约需 5 分钟
+            - generic [ref=e230]:
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - generic [ref=e233]: "2"
+                  - heading "语音合成" [level=3] [ref=e234]
+                - button "lightbulb 隐藏提示" [ref=e235] [cursor=pointer]:
+                  - generic [ref=e236]: lightbulb
+                  - text: 隐藏提示
+              - generic [ref=e237]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]:
+                    - generic [ref=e243]: auto_awesome
+                    - generic [ref=e244]:
+                      - generic [ref=e245]:
+                        - heading "VIP 专属智能生成" [level=4] [ref=e246]
+                        - generic [ref=e247]: PRO
+                      - paragraph [ref=e248]: 基于大模型智能改写文本，使其更符合口语表达与情感需求。
+                      - paragraph [ref=e249]: 普通用户可以试用 3 次
+                  - button "magic_button 一键智能生成" [ref=e250] [cursor=pointer]:
+                    - generic [ref=e251]: magic_button
+                    - text: 一键智能生成
+                - generic [ref=e253]:
+                  - generic [ref=e254]:
+                    - generic [ref=e256]: psychology
+                    - generic [ref=e257]:
+                      - paragraph [ref=e258]: 细粒度情感控制
+                      - paragraph [ref=e259]: 您可以直接在文本中加入 (情感) 标签来控制局部语气的表达。
+                  - generic [ref=e260]:
+                    - button "content_copy" [ref=e261] [cursor=pointer]:
+                      - generic [ref=e262]: content_copy
+                    - generic [ref=e263]:
+                      - paragraph [ref=e264]: (开心) 今天的天气真好啊！
+                      - paragraph [ref=e265]: (悲伤) 听到这个消息我很难过。
+                      - paragraph [ref=e266]: (激动) 这简直太不可思议了！
+                  - generic [ref=e267]:
+                    - button "sentiment_very_satisfied 开心" [ref=e268] [cursor=pointer]:
+                      - generic [ref=e269]: sentiment_very_satisfied
+                      - text: 开心
+                    - button "sentiment_very_dissatisfied 悲伤" [ref=e270] [cursor=pointer]:
+                      - generic [ref=e271]: sentiment_very_dissatisfied
+                      - text: 悲伤
+                    - button "mood_bad 愤怒" [ref=e272] [cursor=pointer]:
+                      - generic [ref=e273]: mood_bad
+                      - text: 愤怒
+                    - button "bolt 激动" [ref=e274] [cursor=pointer]:
+                      - generic [ref=e275]: bolt
+                      - text: 激动
+                    - button "self_improvement 平静" [ref=e276] [cursor=pointer]:
+                      - generic [ref=e277]: self_improvement
+                      - text: 平静
+                    - button "scuba_diving 紧张" [ref=e278] [cursor=pointer]:
+                      - generic [ref=e279]: scuba_diving
+                      - text: 紧张
+                    - button "verified 自信" [ref=e280] [cursor=pointer]:
+                      - generic [ref=e281]: verified
+                      - text: 自信
+                    - button "error_outline 惊讶" [ref=e282] [cursor=pointer]:
+                      - generic [ref=e283]: error_outline
+                      - text: 惊讶
+                    - button "thumb_up 满意" [ref=e284] [cursor=pointer]:
+                      - generic [ref=e285]: thumb_up
+                      - text: 满意
+                    - button "celebration 欣喜" [ref=e286] [cursor=pointer]:
+                      - generic [ref=e287]: celebration
+                      - text: 欣喜
+                    - button "favorite 温柔" [ref=e288] [cursor=pointer]:
+                      - generic [ref=e289]: favorite
+                      - text: 温柔
+                    - button "gavel 严厉" [ref=e290] [cursor=pointer]:
+                      - generic [ref=e291]: gavel
+                      - text: 严厉
+                    - button "auto_fix_high 调皮" [ref=e292] [cursor=pointer]:
+                      - generic [ref=e293]: auto_fix_high
+                      - text: 调皮
+                    - button "privacy_tip 恐惧" [ref=e294] [cursor=pointer]:
+                      - generic [ref=e295]: privacy_tip
+                      - text: 恐惧
+              - generic [ref=e296]:
+                - generic [ref=e297]:
+                  - generic [ref=e298]: 输入待合成文本
+                  - generic [ref=e299]:
+                    - button "清空文本" [ref=e300] [cursor=pointer]
+                    - button "upload_file 上传文本文件" [ref=e301] [cursor=pointer]:
+                      - generic [ref=e302]: upload_file
+                      - text: 上传文本文件
+                - generic [ref=e303]:
+                  - textbox "请输入您想要合成的文本内容，或者拖拽 .txt 文件到此处..." [ref=e304]
+                  - generic [ref=e305]: 0 / 2000 字
+              - generic [ref=e306]:
+                - generic [ref=e307]:
+                  - generic [ref=e308]:
+                    - generic [ref=e309]: 合成语速
+                    - generic [ref=e310]: 1.4x
+                  - generic [ref=e311]:
+                    - slider [ref=e312] [cursor=pointer]: "1.4"
+                    - generic [ref=e313]:
+                      - button "0.5x" [ref=e314] [cursor=pointer]
+                      - button "1.0x" [ref=e315] [cursor=pointer]
+                      - button "1.5x" [ref=e316] [cursor=pointer]
+                      - button "2.0x" [ref=e317] [cursor=pointer]
+                - generic [ref=e318]:
+                  - generic [ref=e319]:
+                    - generic [ref=e320]: 整体情感倾向
+                    - combobox [ref=e321]:
+                      - option "自然 (默认)" [selected]
+                      - option "饱满"
+                      - option "低沉"
+                      - option "激昂"
+                  - generic [ref=e322]:
+                    - generic [ref=e323]: 输出格式
+                    - combobox [ref=e324]:
+                      - option "WAV (无损)" [selected]
+                      - option "MP3 (192kbps)"
+                      - option "MP3 (320kbps)"
+                - button "bolt 开始生成音频" [disabled] [ref=e325]:
+                  - generic [ref=e326]: bolt
+                  - generic [ref=e327]: 开始生成音频
+          - generic [ref=e329]:
+            - generic [ref=e330]:
+              - generic [ref=e331]:
+                - generic [ref=e332]:
+                  - generic [ref=e333]: history
+                  - heading "生成历史" [level=3] [ref=e334]
+                - button "delete_sweep 清空记录" [ref=e335] [cursor=pointer]:
+                  - generic [ref=e336]: delete_sweep
+                  - text: 清空记录
+              - generic [ref=e337]:
+                - generic [ref=e338]:
+                  - button "play_arrow" [ref=e339] [cursor=pointer]:
+                    - generic [ref=e340]: play_arrow
+                  - generic [ref=e341]:
+                    - generic [ref=e342]:
+                      - generic [ref=e343]:
+                        - generic [ref=e344]: 温暖女声
+                        - paragraph [ref=e345]: “今天的天气真不错，适合出去散散步，感受一下大自然的美好...”
+                      - generic [ref=e346]: 2023-11-22 14:30
+                    - generic [ref=e350]: 01:12 / 03:45
+                  - generic [ref=e351]:
+                    - button "download" [ref=e352] [cursor=pointer]:
+                      - generic [ref=e353]: download
+                    - button "delete" [ref=e354] [cursor=pointer]:
+                      - generic [ref=e355]: delete
+                - generic [ref=e356]:
+                  - button "play_arrow" [ref=e357] [cursor=pointer]:
+                    - generic [ref=e358]: play_arrow
+                  - generic [ref=e359]:
+                    - generic [ref=e360]:
+                      - generic [ref=e361]:
+                        - generic [ref=e362]: 深沉男低音
+                        - paragraph [ref=e363]: “深度学习在语音合成领域的应用已经非常成熟，目前的克隆技术已经能够实现...”
+                      - generic [ref=e364]: 2023-11-21 10:15
+                    - generic [ref=e367]: 00:00 / 00:58
+                  - generic [ref=e368]:
+                    - button "download" [ref=e369] [cursor=pointer]:
+                      - generic [ref=e370]: download
+                    - button "delete" [ref=e371] [cursor=pointer]:
+                      - generic [ref=e372]: delete
+            - generic [ref=e373]:
+              - generic [ref=e375]:
+                - generic [ref=e377]: graphic_eq
+                - generic [ref=e378]:
+                  - heading "实时预览播放器" [level=4] [ref=e379]
+                  - paragraph [ref=e380]: 就绪并等待音频生成...
+              - generic [ref=e381]:
+                - button "play_arrow" [ref=e382] [cursor=pointer]:
+                  - generic [ref=e383]: play_arrow
+                - generic [ref=e386]:
+                  - generic [ref=e387]: 00:00
+                  - generic [ref=e388]: 00:00
+  - contentinfo [ref=e77]:
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e83]: graphic_eq
+            - generic [ref=e84]: VoiceClone Pro
+          - paragraph [ref=e85]: 面向未来的 AI 语音交互引擎，为内容创作者提供最优质的声音合成服务。
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - heading "产品" [level=4] [ref=e88]
+            - link "控制台" [ref=e89] [cursor=pointer]:
+              - /url: "#"
+            - link "API 开发文档" [ref=e90] [cursor=pointer]:
+              - /url: "#"
+            - link "声音库" [ref=e91] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=e92]:
+            - heading "支持" [level=4] [ref=e93]
+            - link "服务条款" [ref=e94] [cursor=pointer]:
+              - /url: "#"
+            - link "隐私政策" [ref=e95] [cursor=pointer]:
+              - /url: "#"
+            - link "联系支持" [ref=e96] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=e97]:
+            - heading "社区" [level=4] [ref=e98]
+            - link "微信公众号" [ref=e99] [cursor=pointer]:
+              - /url: "#"
+            - link "Discord" [ref=e100] [cursor=pointer]:
+              - /url: "#"
+      - generic [ref=e101]:
+        - paragraph [ref=e102]: © 2024 VoiceClone Pro. All rights reserved.
+        - generic [ref=e103]:
+          - generic [ref=e104]: 粤ICP备2024000000号-1
+          - generic [ref=e105]: Powered by MiniMax Engine

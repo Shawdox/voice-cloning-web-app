@@ -29,4 +29,6 @@ export interface GenerationRecord {
   duration: string;
   currentTime: string;
   progress: number;
+  audioUrl?: string;
+  status?: string;
 }

@@ -1,6 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { INITIAL_VOICES, INITIAL_HISTORY } from '../constants';
+import { Voice } from '../types';
+import { voiceAPI, ttsAPI } from '../services/api';
+import { TTSTaskResponse } from '../types/api';
 import VoiceLibrary from './VoiceLibrary';
 import VoiceCloningSection from './VoiceCloningSection';
 import SpeechSynthesisSection from './SpeechSynthesisSection';
@@ -14,34 +17,130 @@ interface WorkspaceProps {
 }
 
 const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onViewVip, onLoginRequest }) => {
-  const [voices, setVoices] = useState(INITIAL_VOICES);
+  const [voices, setVoices] = useState<Voice[]>(INITIAL_VOICES);
   const [history, setHistory] = useState(isLoggedIn ? INITIAL_HISTORY : []);
-  const [selectedVoiceId, setSelectedVoiceId] = useState('v1');
+  const [selectedVoiceId, setSelectedVoiceId] = useState('s1');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [ttsTasks, setTtsTasks] = useState<TTSTaskResponse[]>([]);
 
-  const handleStartGeneration = (text: string, options: any) => {
-    if (!text.trim()) return;
-    
-    setIsGenerating(true);
-    setTimeout(() => {
-      const selectedVoice = voices.find(v => v.id === selectedVoiceId);
-      const newRecord = {
-        id: `h${Date.now()}`,
-        voiceName: selectedVoice?.name || '未知声音',
-        text: text.slice(0, 50) + (text.length > 50 ? '...' : ''),
-        date: new Date().toLocaleString(),
-        duration: '00:30',
-        currentTime: '00:00',
-        progress: 0
-      };
-      
-      setHistory(prev => [newRecord, ...prev]);
-      setIsGenerating(false);
-      
-      if (!isLoggedIn && history.length > 2) {
-        alert('登录后即可永久保存您的生成历史记录');
+  // Fetch user voices from backend
+  const fetchVoices = useCallback(async () => {
+    if (!isLoggedIn) {
+      setVoices(INITIAL_VOICES);
+      return;
+    }
+
+    try {
+      const response = await voiceAPI.getList(1, 100);
+      // Convert backend response to frontend Voice type
+      const userVoices: Voice[] = response.data.map(v => ({
+        id: String(v.id),
+        name: v.name,
+        type: 'user' as const,
+        status: v.status === 'ready' ? 'ready' : 'training',
+        progress: v.progress,
+        createdDate: new Date(v.createdAt).toLocaleDateString(),
+        isPinned: v.isPinned,
+      }));
+      // Combine user voices with system voices
+      setVoices([...userVoices, ...INITIAL_VOICES]);
+    } catch (err) {
+      console.error('Failed to fetch voices:', err);
+      setVoices(INITIAL_VOICES);
+    }
+  }, [isLoggedIn]);
+
+  // Fetch TTS tasks from backend
+  const fetchTTSTasks = useCallback(async () => {
+    if (!isLoggedIn) {
+      setTtsTasks([]);
+      return;
+    }
+
+    try {
+      const response = await ttsAPI.getList(1, 100);
+      setTtsTasks(response.data);
+    } catch (err) {
+      console.error('Failed to fetch TTS tasks:', err);
+    }
+  }, [isLoggedIn]);
+
+  // Fetch voices on mount and when login status changes
+  useEffect(() => {
+    fetchVoices();
+    fetchTTSTasks();
+  }, [fetchVoices, fetchTTSTasks]);
+
+  // Poll for training voices status
+  useEffect(() => {
+    const trainingVoices = voices.filter(v => v.status === 'training' && v.type === 'user');
+    if (trainingVoices.length === 0) return;
+
+    const interval = setInterval(() => {
+      fetchVoices();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [voices, fetchVoices]);
+
+  // Poll for TTS tasks status
+  useEffect(() => {
+    const activeTasks = ttsTasks.filter(t => t.status === 'pending' || t.status === 'processing');
+    if (activeTasks.length === 0) return;
+
+    const interval = setInterval(() => {
+      fetchTTSTasks();
+    }, 10000); // Poll every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [ttsTasks, fetchTTSTasks]);
+
+  // Convert TTS tasks to history records
+  const historyRecords = ttsTasks.map(task => ({
+    id: String(task.id),
+    voiceName: task.voiceName,
+    text: task.text.slice(0, 50) + (task.text.length > 50 ? '...' : ''),
+    date: new Date(task.date).toLocaleString('zh-CN'),
+    duration: task.audioDuration ? `${Math.floor(task.audioDuration / 60)}:${String(Math.floor(task.audioDuration % 60)).padStart(2, '0')}` : '--:--',
+    currentTime: '00:00',
+    progress: task.status === 'completed' ? 100 : (task.status === 'processing' ? 50 : 10),
+    audioUrl: task.audioUrl,
+    status: task.status,
+  }));
+
+  const handleStartGeneration = async (text: string, options: any) => {
+    if (!text.trim() || !isLoggedIn) {
+      if (!isLoggedIn) {
+        onLoginRequest();
       }
-    }, 2000);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const selectedVoice = voices.find(v => v.id === selectedVoiceId);
+      if (!selectedVoice || selectedVoice.type === 'system') {
+        alert('请选择一个已完成的用户音色');
+        return;
+      }
+
+      const voiceId = parseInt(selectedVoice.id);
+      const response = await ttsAPI.create({
+        voiceId,
+        text,
+        emotion: options.emotion,
+        speed: options.speed,
+      });
+
+      // Fetch updated TTS tasks list
+      await fetchTTSTasks();
+      alert('语音合成任务已提交，请稍后查看生成历史');
+    } catch (err: any) {
+      console.error('Failed to create TTS task:', err);
+      alert(err.message || '语音合成失败，请重试');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -112,7 +211,12 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
 
             <div className="lg:col-span-9 flex flex-col gap-6">
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <VoiceCloningSection voices={voices} isLoggedIn={isLoggedIn} onLoginRequest={onLoginRequest} />
+                <VoiceCloningSection
+                  voices={voices}
+                  isLoggedIn={isLoggedIn}
+                  onLoginRequest={onLoginRequest}
+                  onVoiceCreated={fetchVoices}
+                />
                 <SpeechSynthesisSection 
                   onGenerate={handleStartGeneration}
                   isGenerating={isGenerating}
@@ -121,11 +225,28 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
 
               <div className="grid grid-cols-1 gap-6">
                 <div className="bg-white p-6 rounded-2xl border border-[#e8cedb] shadow-sm">
-                  <HistoryList 
-                    history={history} 
+                  <HistoryList
+                    history={historyRecords}
                     isLoggedIn={isLoggedIn}
-                    onClear={() => setHistory([])}
-                    onDelete={(id) => setHistory(history.filter(h => h.id !== id))}
+                    onClear={async () => {
+                      // Clear all TTS tasks
+                      for (const task of ttsTasks) {
+                        try {
+                          await ttsAPI.delete(task.id);
+                        } catch (err) {
+                          console.error('Failed to delete task:', err);
+                        }
+                      }
+                      fetchTTSTasks();
+                    }}
+                    onDelete={async (id) => {
+                      try {
+                        await ttsAPI.delete(parseInt(id));
+                        fetchTTSTasks();
+                      } catch (err) {
+                        console.error('Failed to delete task:', err);
+                      }
+                    }}
                   />
                 </div>
                 
