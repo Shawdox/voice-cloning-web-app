@@ -38,7 +38,7 @@ def transcribe_audio(client, audio_path, language="zh"):
     return asr_result.text
 
 @timer_decorator
-def instance_clone_test(api_key, input_audio_path, text_to_speak, output_audio_path="fish_audio_quick_clone.mp3"):
+def instance_clone_test(model, api_key, input_audio_path, text_to_speak, output_audio_path="fish_audio_quick_clone.mp3"):
     # Initialize client
     client = FishAudio(api_key=api_key)
     start_credits = None
@@ -84,7 +84,7 @@ def instance_clone_test(api_key, input_audio_path, text_to_speak, output_audio_p
         audio = client.tts.convert(
             model="speech-1.6",
             text=text_to_speak,
-            speed=0.8,
+            speed=1,
             references=[ReferenceAudio(
                 audio=reference_audio_content,
                 text=reference_text
@@ -109,12 +109,23 @@ def instance_clone_test(api_key, input_audio_path, text_to_speak, output_audio_p
         print(f"An error occurred: {e}")
 
 @timer_decorator
-def voice_create_and_generate_test(api_key, 
+def voice_create_and_generate_test(model,
+                                   api_key, 
                                    input_audio_path, 
                                    text_to_speak, 
                                    output_audio_path="fish_audio_voice_create.mp3", 
                                    with_transcript=False):
     client = FishAudio(api_key=api_key)
+    
+    start_credits = None
+    # Get initial credits
+    try:
+        start_credits_response = client.account.get_credits()
+        start_credits = start_credits_response.credit
+        print(f"Initial credits: {start_credits}")
+    except Exception as e:
+        print(f"Failed to get initial credits: {e}")
+        start_credits = None
     
     if not os.path.exists(input_audio_path):
         print(f"Error: Input file '{input_audio_path}' not found.")
@@ -138,13 +149,14 @@ def voice_create_and_generate_test(api_key,
             print(f"Transcript generated: {reference_text}")
             
         print("Creating persistent voice model...")
+        print(f"Config:\n\t input audios: {len(voices)}\n\t with transcript: {with_transcript}\n\t model: {model}")
         create_kwargs = {
             "title": "Test Persistent Voice",
             "voices": voices,
             "description": "Created by automated test script",
             "tags": ["test", "automated"],
             # Enable automatic audio enhancement to clean up noisy reference audio
-            "enhance_audio_quality": True 
+            #"enhance_audio_quality": True 
         }
         
         if with_transcript and texts:
@@ -154,17 +166,27 @@ def voice_create_and_generate_test(api_key,
         print(f"Voice model created successfully. ID: {voice.id}")
         
         print("\nGenerating audio with the new voice model...")
+        print(f'Text: {text_to_speak}')
         audio = client.tts.convert(
             text=text_to_speak,
             reference_id=voice.id,
-            speed=0.8,
-            model="speech-1.6" 
+            speed=1,
+            model=model
         )
         
         print(f"Saving generated audio to: {output_audio_path}")
         save(audio, output_audio_path)
         print("Done!")
 
+         # Get final credits and calculate usage
+        if start_credits is not None:
+            try:
+                end_credits_response = client.account.get_credits()
+                end_credits = end_credits_response.credit
+                print(f"Final credits: {end_credits}")
+                print(f"API usage consumed: {start_credits - end_credits}")
+            except Exception as e:
+                print(f"Failed to get final credits: {e}")
     except Exception as e:
         print(f"An error occurred during voice creation or generation: {e}")
     return voice.id
@@ -199,7 +221,12 @@ def generate_with_voice_id(api_key, voice_id, text_to_speak, output_audio_path="
         print(f"An error occurred during generation: {e}")
 
 @timer_decorator
+def emotion_control_test(api_key, input_audio_path, text_to_speak, output_audio_path="fish_audio_emotion_control.mp3"):
+    pass
+
+@timer_decorator
 def main():
+    model = "s1"
     INPUTDIR = "/home/xiaowu/voice_web_app/data/audio"
     OUTPUTDIR = "/home/xiaowu/voice_web_app/test_scripts"
     # Check for API key
@@ -214,12 +241,11 @@ def main():
     # Load text to speak
     text_path = os.path.join("/home/xiaowu/voice_web_app/data", "input2.txt")
     if os.path.exists(text_path):
-        with open(text_path, "r", encoding="utf-8") as f:
+        with open(text_path, "r") as f:
             text_to_speak = f.read()
     else:
         text_to_speak = "你好，我是智能语音助手。"
         print(f"Warning: {text_path} not found, using default text.")
-
     # Uncomment the function you want to test:
     
     # Test 1: Quick Clone (Instant)
@@ -230,25 +256,25 @@ def main():
     
     print("Running voice_create_and_generate_test...")
     
-    input_audio = "12月16日1.MP3"
+    input_audio = "季冠霖语音包.MP3"
     base_name = os.path.splitext(input_audio)[0]
     input_audio_path = os.path.join(INPUTDIR, input_audio)
     
-    output_audio_path = os.path.join(OUTPUTDIR, f"{base_name}_3.mp3")
-    voice_id1 = voice_create_and_generate_test(api_key, 
+    output_audio_path = os.path.join(OUTPUTDIR, f"{base_name}_output.mp3")
+    voice_id1 = voice_create_and_generate_test(model, api_key, 
                                    input_audio_path, 
                                    text_to_speak, 
                                    output_audio_path=output_audio_path, 
                                    with_transcript=False)
-    print(f"Generated audio with voice ID: {voice_id1} without transcript. File saved to {output_audio_path}")
+    print(f"Generated audio with voice ID: {voice_id1} without transcript.\nFile saved to {output_audio_path}")
     
-    output_audio_path = os.path.join(OUTPUTDIR, f"{base_name}_4.mp3")
-    voice_id2 = voice_create_and_generate_test(api_key, 
-                                   input_audio_path, 
-                                   text_to_speak,
-                                   output_audio_path=output_audio_path, 
-                                   with_transcript=True)
-    print(f"Generated audio with voice ID: {voice_id2} with transcript. File saved to {output_audio_path}")
+    #output_audio_path = os.path.join(OUTPUTDIR, f"{base_name}_4.mp3")
+    #voice_id2 = voice_create_and_generate_test(api_key, 
+    #                               input_audio_path, 
+    #                               text_to_speak,
+    #                               output_audio_path=output_audio_path, 
+    #                               with_transcript=True)
+    #print(f"Generated audio with voice ID: {voice_id2} with transcript. File saved to {output_audio_path}")
     
     
 

@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
           />
         );
       case AppView.VOICE_LIBRARY:
-        return <VoiceLibraryView onBack={() => handleNavigate(AppView.WORKSPACE)} />;
+        return <VoiceLibraryView onBack={() => handleNavigate(AppView.WORKSPACE)} isLoggedIn={isLoggedIn} />;
       case AppView.ACCOUNT:
         return (
           <AccountView

@@ -1,6 +1,51 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+const EMOTION_TAGS = [
+  '开心',
+  '悲伤',
+  '愤怒',
+  '激动',
+  '平静',
+  '紧张',
+  '自信',
+  '惊讶',
+  '满意',
+  '欣喜',
+  '温柔',
+  '严厉',
+  '调皮',
+  '恐惧',
+  'happy',
+  'sad',
+  'angry',
+  'excited',
+  'calm',
+  'nervous',
+  'confident',
+  'surprised',
+  'satisfied',
+  'delighted',
+  'scared',
+  'worried',
+  'upset',
+  'frustrated',
+  'depressed',
+  'empathetic',
+  'embarrassed',
+  'disgusted',
+  'moved',
+  'proud',
+  'relaxed',
+  'grateful',
+  'curious',
+  'sarcastic',
+];
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const EMOTION_TAG_PATTERN = EMOTION_TAGS.map(escapeRegExp).join('|');
+const EMOTION_TAG_REGEX = new RegExp(`\\((${EMOTION_TAG_PATTERN})\\)`, 'g');
+
 interface SpeechSynthesisSectionProps {
   onGenerate: (text: string, options: any) => void;
   isGenerating: boolean;
@@ -11,8 +56,8 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
   isGenerating 
 }) => {
   const [text, setText] = useState('');
-  const [speed, setSpeed] = useState(1.4);
-  const [displaySpeed, setDisplaySpeed] = useState(1.4);
+  const [speed, setSpeed] = useState(1.0);
+  const [displaySpeed, setDisplaySpeed] = useState(1.0);
   const [emotion, setEmotion] = useState('自然 (默认)');
   const [format, setFormat] = useState('WAV (无损)');
   const [showTips, setShowTips] = useState(true);
@@ -22,6 +67,56 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
   
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  const escapeHtml = (input: string): string => {
+    return input
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  const parseTextToHTML = (inputText: string): string => {
+    const safeText = escapeHtml(inputText);
+    return safeText.replace(EMOTION_TAG_REGEX, (match) => {
+      return `<span class="special-node">${match}</span>`;
+    });
+  };
+
+  const normalizeEmotionSpacing = (inputText: string): string => {
+    return inputText.replace(
+      new RegExp(`\\((${EMOTION_TAG_PATTERN})\\)([ \\t]*)`, 'g'),
+      (match, tag, _spaces, offset, full) => {
+        const nextIndex = offset + match.length;
+        if (nextIndex >= full.length) return `(${tag})`;
+        const nextChar = full[nextIndex];
+        if (nextChar === '\n' || nextChar === '\r') return `(${tag})`;
+        return `(${tag}) `;
+      }
+    );
+  };
+
+  const setTextWithOverlay = (nextText: string) => {
+    const normalized = normalizeEmotionSpacing(nextText).slice(0, 2000);
+    setText(normalized);
+    updateOverlay(normalized);
+    return normalized;
+  };
+
+  const updateOverlay = (nextText: string) => {
+    if (!overlayRef.current) return;
+    overlayRef.current.innerHTML = parseTextToHTML(nextText);
+  };
+
+  useEffect(() => {
+    updateOverlay(text);
+  }, [text]);
+
+  useEffect(() => {
+    updateOverlay(text);
+  }, [text]);
 
   // Interpolation for speed display
   useEffect(() => {
@@ -43,7 +138,8 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
     reader.onload = (e) => {
       const content = e.target?.result as string;
       if (content) {
-        setText(content.slice(0, 2000));
+        const nextText = content.slice(0, 2000);
+        setTextWithOverlay(nextText);
       }
     };
     reader.readAsText(file);
@@ -82,13 +178,11 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const newText = text.substring(0, start) + `(${tag})` + text.substring(end);
-    
-    setText(newText);
-    
-    // Focus back and set cursor position after the inserted tag
+    const normalized = setTextWithOverlay(newText);
+
     setTimeout(() => {
       textarea.focus();
-      const newCursorPos = start + tag.length + 2;
+      const newCursorPos = Math.min(start + tag.length + 3, normalized.length);
       textarea.setSelectionRange(newCursorPos, newCursorPos);
     }, 0);
   };
@@ -108,7 +202,12 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
         "(自信) 让声音不仅仅是信息的载体，更是情感的纽带，跨越空间的距离。"
       ];
       const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
-      setText(prev => (prev ? prev + "\n" + randomSuggestion : randomSuggestion));
+      setText(prev => {
+        const nextText = prev ? prev + "\n" + randomSuggestion : randomSuggestion;
+        const normalized = normalizeEmotionSpacing(nextText).slice(0, 2000);
+        updateOverlay(normalized);
+        return normalized;
+      });
       setVipTrialCount(prev => prev - 1);
       setIsAiGenerating(false);
     }, 1500);
@@ -226,7 +325,7 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
         </div>
       )}
       
-      <div className="flex flex-col gap-3">
+       <div className="flex flex-col gap-3">
         <div className="flex justify-between items-center px-1">
           <label className="text-[#1c0d14] text-sm font-bold">输入待合成文本</label>
           <div className="flex items-center gap-3">
@@ -238,7 +337,10 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
               onChange={onFileChange}
             />
             <button 
-              onClick={() => setText('')}
+              onClick={() => {
+                setText('');
+                updateOverlay('');
+              }}
               className="text-[11px] text-gray-400 hover:text-red-500 font-bold transition-colors"
             >
               清空文本
@@ -252,30 +354,63 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
             </button>
           </div>
         </div>
-        <div 
-          className="relative group"
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-        >
-          <textarea 
-            ref={textAreaRef}
-            value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 2000))}
-            className={`form-input flex w-full min-w-0 flex-1 resize-none rounded-2xl text-[#1c0d14] focus:outline-0 focus:ring-4 focus:ring-primary/10 border transition-all min-h-[220px] placeholder:text-[#9c4973]/30 p-5 text-sm font-medium leading-relaxed ${
-              isDraggingFile 
-                ? 'border-primary bg-pink-50 ring-4 ring-primary/10' 
-                : 'border-[#e8cedb] bg-[#fcf8fa]'
-            }`} 
+         <div
+           className={`relative group rounded-2xl border transition-all min-h-[220px] ${
+             isDraggingFile
+               ? 'border-primary bg-pink-50 ring-4 ring-primary/10'
+               : 'border-[#e8cedb] bg-[#fcf8fa]'
+           }`}
+           onDragOver={onDragOver}
+           onDragLeave={onDragLeave}
+           onDrop={onDrop}
+         >
+            <div
+              ref={overlayRef}
+              aria-hidden="true"
+              className="emotion-overlay absolute inset-0 pointer-events-none rounded-2xl overflow-hidden p-5 text-sm font-medium leading-relaxed whitespace-pre-wrap"
+              style={{
+                minHeight: '220px',
+                zIndex: 1,
+              }}
+            />
+            <textarea
+              ref={textAreaRef}
+              value={text}
+              onChange={(e) => {
+                const textarea = e.currentTarget;
+                const nextText = textarea.value.slice(0, 2000);
+                const normalized = setTextWithOverlay(nextText);
+                if (normalized !== nextText) {
+                  const delta = normalized.length - nextText.length;
+                  const nextPos = Math.max(0, textarea.selectionStart + delta);
+                  requestAnimationFrame(() => {
+                    textAreaRef.current?.setSelectionRange(nextPos, nextPos);
+                  });
+                }
+              }}
+            onScroll={(e) => {
+              if (overlayRef.current) {
+                overlayRef.current.scrollTop = (e.currentTarget as HTMLTextAreaElement).scrollTop;
+                overlayRef.current.scrollLeft = (e.currentTarget as HTMLTextAreaElement).scrollLeft;
+              }
+            }}
+            className="form-input flex w-full min-w-0 flex-1 resize-none rounded-2xl focus:outline-0 min-h-[220px] placeholder:text-[#9c4973]/30 p-5 text-sm font-medium leading-relaxed whitespace-pre-wrap break-words bg-transparent border-0"
             placeholder="请输入您想要合成的文本内容，或者拖拽 .txt 文件到此处..."
-          ></textarea>
-          
-          {isDraggingFile && (
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] rounded-2xl border-2 border-dashed border-primary animate-pulse">
-              <span className="material-symbols-outlined text-5xl text-primary mb-2">move_to_inbox</span>
-              <p className="text-primary font-black text-sm">松开以导入文本</p>
-            </div>
-          )}
+            style={{
+              background: 'transparent',
+              color: 'transparent',
+              caretColor: '#1c0d14',
+              position: 'relative',
+              zIndex: 2,
+            }}
+          />
+           
+           {isDraggingFile && (
+             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center bg-white/60 backdrop-blur-[2px] rounded-2xl border-2 border-dashed border-primary animate-pulse">
+               <span className="material-symbols-outlined text-5xl text-primary mb-2">move_to_inbox</span>
+               <p className="text-primary font-black text-sm">松开以导入文本</p>
+             </div>
+           )}
 
           <div className="absolute bottom-4 right-4 text-[11px] text-[#9c4973] font-bold bg-white/80 backdrop-blur-sm px-2.5 py-1 rounded-lg border border-pink-50 shadow-sm">
             {text.length} / 2000 字
@@ -372,6 +507,38 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-5px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        .special-node {
+          background: linear-gradient(135deg, #f5d0fe 0%, #e8a2e5 100%);
+          color: transparent;
+          -webkit-text-fill-color: transparent;
+          border-radius: 6px;
+          font-weight: 600;
+          display: inline;
+          box-shadow: 0 0 0 3px rgba(245, 208, 254, 0.6);
+          transition: all 0.2s ease;
+          white-space: nowrap;
+          -webkit-box-decoration-break: clone;
+          box-decoration-break: clone;
+        }
+        .special-node:hover {
+          box-shadow: 0 4px 8px rgba(245, 208, 254, 0.4);
+          transform: translateY(-1px);
+        }
+        .emotion-overlay {
+          color: #1c0d14;
+          -webkit-text-fill-color: #1c0d14;
+          font-family: inherit;
+          font-size: 0.875rem;
+          font-weight: 500;
+          line-height: 1.625;
+          white-space: pre-wrap;
+          word-break: break-word;
+          background: transparent;
+        }
+        .emotion-overlay .special-node {
+          color: #701a75;
+          -webkit-text-fill-color: #701a75;
         }
       `}</style>
     </div>

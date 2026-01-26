@@ -1,15 +1,57 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { INITIAL_VOICES } from '../constants';
 import { Voice, VoiceType } from '../types';
+import { voiceAPI } from '../services/api';
 
 interface VoiceLibraryViewProps {
   onBack: () => void;
+  isLoggedIn: boolean;
 }
 
-const VoiceLibraryView: React.FC<VoiceLibraryViewProps> = ({ onBack }) => {
+const VoiceLibraryView: React.FC<VoiceLibraryViewProps> = ({ onBack, isLoggedIn }) => {
   const [voices, setVoices] = useState<Voice[]>(INITIAL_VOICES);
   const [filter, setFilter] = useState<VoiceType | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 从后端获取音色列表
+  const fetchVoices = useCallback(async () => {
+    if (!isLoggedIn) {
+      // 未登录时只显示系统预设音色
+      setVoices(INITIAL_VOICES);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await voiceAPI.getList(1, 100);
+
+      // 转换后端数据格式为前端Voice类型
+      const userVoices: Voice[] = response.data.map(v => ({
+        id: String(v.id),
+        name: v.name,
+        type: 'user' as VoiceType,
+        status: v.status as 'ready' | 'training',
+        progress: v.progress || 0,
+        createdDate: new Date(v.createdAt).toLocaleDateString(),
+        isPinned: v.isPinned || false,
+      }));
+
+      // 合并用户音色和系统预设音色
+      setVoices([...userVoices, ...INITIAL_VOICES]);
+    } catch (error) {
+      console.error('Failed to fetch voices:', error);
+      // 出错时回退到系统预设音色
+      setVoices(INITIAL_VOICES);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoggedIn]);
+
+  // 组件挂载和登录状态变化时获取音色列表
+  useEffect(() => {
+    fetchVoices();
+  }, [fetchVoices]);
 
   const handleDelete = (id: string) => {
     if (confirm('确定要删除这个声音吗？删除后无法恢复。')) {

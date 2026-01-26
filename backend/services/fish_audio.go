@@ -426,7 +426,7 @@ func GenerateSpeech(text, voiceID string, speed float64) (*TTSResponse, error) {
 		}
 		req.Header.Set("Authorization", "Bearer "+fishClient.APIKey)
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("model", "speech-1.6")
+		req.Header.Set("model", "s1")
 		// Add speed parameter
 		if speed > 0 {
 			req.Header.Set("speed", fmt.Sprintf("%.2f", speed))

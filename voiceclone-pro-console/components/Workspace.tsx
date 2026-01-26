@@ -9,6 +9,32 @@ import VoiceCloningSection from './VoiceCloningSection';
 import SpeechSynthesisSection from './SpeechSynthesisSection';
 import HistoryList from './HistoryList';
 
+const EMOTION_TAG_MAP: Record<string, string> = {
+  '开心': 'happy',
+  '悲伤': 'sad',
+  '愤怒': 'angry',
+  '激动': 'excited',
+  '平静': 'calm',
+  '紧张': 'nervous',
+  '自信': 'confident',
+  '惊讶': 'surprised',
+  '满意': 'satisfied',
+  '欣喜': 'delighted',
+  '恐惧': 'scared',
+};
+
+const normalizeEmotionTags = (inputText: string): string => {
+  return inputText.replace(/\(([^()]+)\)/g, (match, rawTag) => {
+    const trimmed = rawTag.trim();
+    const mapped = EMOTION_TAG_MAP[trimmed];
+    return mapped ? `(${mapped})` : match;
+  });
+};
+
+const removeEmotionTags = (inputText: string): string => {
+  return inputText.replace(/\(([^()]+)\)/g, '');
+};
+
 interface WorkspaceProps {
   isLoggedIn: boolean;
   onManageVoices: () => void;
@@ -96,17 +122,20 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
   }, [ttsTasks, fetchTTSTasks]);
 
   // Convert TTS tasks to history records
-  const historyRecords = ttsTasks.map(task => ({
-    id: String(task.id),
-    voiceName: task.voiceName,
-    text: task.text.slice(0, 50) + (task.text.length > 50 ? '...' : ''),
-    date: new Date(task.date).toLocaleString('zh-CN'),
-    duration: task.audioDuration ? `${Math.floor(task.audioDuration / 60)}:${String(Math.floor(task.audioDuration % 60)).padStart(2, '0')}` : '--:--',
-    currentTime: '00:00',
-    progress: task.status === 'completed' ? 100 : (task.status === 'processing' ? 50 : 10),
-    audioUrl: task.audioUrl,
-    status: task.status,
-  }));
+  const historyRecords = ttsTasks.map(task => {
+    const cleanedText = removeEmotionTags(task.text);
+    return {
+      id: String(task.id),
+      voiceName: task.voiceName,
+      text: cleanedText.slice(0, 50) + (cleanedText.length > 50 ? '...' : ''),
+      date: new Date(task.date).toLocaleString('zh-CN'),
+      duration: task.audioDuration ? `${Math.floor(task.audioDuration / 60)}:${String(Math.floor(task.audioDuration % 60)).padStart(2, '0')}` : '--:--',
+      currentTime: '00:00',
+      progress: task.status === 'completed' ? 100 : (task.status === 'processing' ? 50 : 10),
+      audioUrl: task.audioUrl,
+      status: task.status,
+    };
+  });
 
   const handleStartGeneration = async (text: string, options: any) => {
     if (!text.trim() || !isLoggedIn) {
@@ -124,10 +153,11 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
         return;
       }
 
+      const normalizedText = normalizeEmotionTags(text);
       const voiceId = parseInt(selectedVoice.id);
       const response = await ttsAPI.create({
         voiceId,
-        text,
+        text: normalizedText,
         emotion: options.emotion,
         speed: options.speed,
       });
