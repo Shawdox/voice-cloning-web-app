@@ -18,13 +18,13 @@ type Voice struct {
 
 	// Fish Audio 相关
 	FishVoiceID   *string `gorm:"size:255;uniqueIndex" json:"fish_voice_id,omitempty"` // Fish Audio返回的voice_id
-	AudioFileURL  string `gorm:"size:500" json:"audio_file_url"`            // OSS上的音频文件URL
-	AudioFileName string `gorm:"size:255" json:"audio_file_name"`           // 原始文件名
-	AudioDuration float64 `json:"audio_duration"`                           // 音频时长（秒）
+	AudioFileURL  string  `gorm:"size:500" json:"audio_file_url"`                      // OSS上的音频文件URL
+	AudioFileName string  `gorm:"size:255" json:"audio_file_name"`                     // 原始文件名
+	AudioDuration float64 `json:"audio_duration"`                                      // 音频时长（秒）
 
 	// 任务状态
-	Status      string `gorm:"size:20;not null;default:'pending'" json:"status"` // pending, processing, completed, failed
-	ErrorMsg    string `gorm:"type:text" json:"error_msg,omitempty"`
+	Status      string     `gorm:"size:20;not null;default:'pending'" json:"status"` // pending, processing, completed, failed
+	ErrorMsg    string     `gorm:"type:text" json:"error_msg,omitempty"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
 	// 转录相关
@@ -52,6 +52,7 @@ type TTSTask struct {
 	Text          string  `gorm:"type:text;not null" json:"text"`      // 要合成的文本
 	TextLength    int     `json:"text_length"`                         // 文本长度
 	Emotion       string  `gorm:"size:50" json:"emotion,omitempty"`    // 情感标签
+	Format        string  `gorm:"size:10;default:'mp3'" json:"format"` // 音频格式: mp3, wav, pcm, opus
 	AudioURL      string  `gorm:"size:500" json:"audio_url,omitempty"` // 生成的音频文件URL
 	AudioDuration float64 `json:"audio_duration"`                      // 音频时长（秒）
 
@@ -59,8 +60,8 @@ type TTSTask struct {
 	FishTaskID string `gorm:"size:255" json:"fish_task_id,omitempty"`
 
 	// 任务状态
-	Status      string `gorm:"size:20;not null;default:'pending'" json:"status"` // pending, processing, completed, failed
-	ErrorMsg    string `gorm:"type:text" json:"error_msg,omitempty"`
+	Status      string     `gorm:"size:20;not null;default:'pending'" json:"status"` // pending, processing, completed, failed
+	ErrorMsg    string     `gorm:"type:text" json:"error_msg,omitempty"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
 
 	// 关联

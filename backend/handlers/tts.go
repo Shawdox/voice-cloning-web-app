@@ -19,6 +19,7 @@ type CreateTTSRequest struct {
 	Text    string  `json:"text" binding:"required"`
 	Emotion string  `json:"emotion"` // 情感标签
 	Speed   float64 `json:"speed"`
+	Format  string  `json:"format"` // 音频格式: mp3, wav, pcm, opus
 }
 
 // 创建TTS任务
@@ -48,6 +49,16 @@ func CreateTTS(c *gin.Context) {
 	}
 	if req.Speed < 0.5 || req.Speed > 2.0 {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "速度必须在0.5-2.0之间"})
+		return
+	}
+
+	// 验证格式参数
+	if req.Format == "" {
+		req.Format = "mp3" // 默认MP3
+	}
+	allowedFormats := map[string]bool{"mp3": true, "wav": true, "pcm": true, "opus": true}
+	if !allowedFormats[req.Format] {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "格式必须是mp3, wav, pcm或opus之一"})
 		return
 	}
 
@@ -82,6 +93,7 @@ func CreateTTS(c *gin.Context) {
 		VoiceID:    req.VoiceID,
 		Text:       req.Text,
 		Emotion:    req.Emotion,
+		Format:     req.Format,
 		TextLength: len(req.Text),
 		Status:     "pending",
 	}
@@ -94,7 +106,7 @@ func CreateTTS(c *gin.Context) {
 	}
 
 	// 启动异步任务处理TTS生成
-	go processTTSGeneration(requestID, userID, task.ID, req.VoiceID, *voice.FishVoiceID, req.Text, req.Speed)
+	go processTTSGeneration(requestID, userID, task.ID, req.VoiceID, *voice.FishVoiceID, req.Text, req.Speed, req.Format)
 
 	c.JSON(http.StatusCreated, models.SuccessResponse{
 		Message: "TTS任务已提交",
@@ -103,13 +115,13 @@ func CreateTTS(c *gin.Context) {
 }
 
 // 异步处理TTS生成
-func processTTSGeneration(requestID string, userID uint, taskID uint, voiceID uint, fishVoiceID, text string, speed float64) {
-	log.Printf("tts_start request_id=%s user_id=%d task_id=%d voice_id=%d fish_voice_id=%s speed=%.2f", requestID, userID, taskID, voiceID, fishVoiceID, speed)
+func processTTSGeneration(requestID string, userID uint, taskID uint, voiceID uint, fishVoiceID, text string, speed float64, format string) {
+	log.Printf("tts_start request_id=%s user_id=%d task_id=%d voice_id=%d fish_voice_id=%s speed=%.2f format=%s", requestID, userID, taskID, voiceID, fishVoiceID, speed, format)
 	// 更新状态为processing
 	database.DB.Model(&models.TTSTask{}).Where("id = ?", taskID).Update("status", "processing")
 
 	// 调用Fish Audio API生成语音
-	fishResp, err := services.GenerateSpeech(text, fishVoiceID, speed)
+	fishResp, err := services.GenerateSpeech(text, fishVoiceID, speed, format)
 	if err != nil {
 		// 生成失败
 		log.Printf("tts_failed request_id=%s user_id=%d task_id=%d voice_id=%d fish_voice_id=%s err=%v", requestID, userID, taskID, voiceID, fishVoiceID, err)
@@ -124,10 +136,10 @@ func processTTSGeneration(requestID string, userID uint, taskID uint, voiceID ui
 	if fishResp.AudioURL != "" {
 		now := time.Now()
 		database.DB.Model(&models.TTSTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
-			"status":        "completed",
-			"audio_url":     fishResp.AudioURL,
+			"status":         "completed",
+			"audio_url":      fishResp.AudioURL,
 			"audio_duration": fishResp.Duration,
-			"completed_at":  &now,
+			"completed_at":   &now,
 		})
 		log.Printf("tts_completed request_id=%s user_id=%d task_id=%d voice_id=%d audio_url=%s", requestID, userID, taskID, voiceID, fishResp.AudioURL)
 		return
@@ -151,10 +163,10 @@ func processTTSGeneration(requestID string, userID uint, taskID uint, voiceID ui
 			// 成功
 			now := time.Now()
 			database.DB.Model(&models.TTSTask{}).Where("id = ?", taskID).Updates(map[string]interface{}{
-				"status":        "completed",
-				"audio_url":     status.AudioURL,
+				"status":         "completed",
+				"audio_url":      status.AudioURL,
 				"audio_duration": status.Duration,
-				"completed_at":  &now,
+				"completed_at":   &now,
 			})
 			log.Printf("tts_completed request_id=%s user_id=%d task_id=%d voice_id=%d audio_url=%s", requestID, userID, taskID, voiceID, status.AudioURL)
 			return

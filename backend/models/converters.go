@@ -47,6 +47,7 @@ func (t *TTSTask) ToTTSTaskResponse(voiceName string) TTSTaskResponse {
 		VoiceName:     voiceName,
 		Text:          t.Text,
 		Emotion:       t.Emotion,
+		Format:        t.Format,
 		AudioURL:      t.AudioURL,
 		AudioDuration: t.AudioDuration,
 		Status:        t.Status,

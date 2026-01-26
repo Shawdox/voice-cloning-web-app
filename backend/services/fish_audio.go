@@ -9,8 +9,8 @@ import (
 	"log"
 	"mime/multipart"
 	"net"
-	"net/url"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -173,7 +173,6 @@ func logFishAudioAPICall(endpoint string, statusCode int) {
 	}()
 }
 
-
 // 创建音色请求
 type CreateVoiceRequest struct {
 	Name        string `json:"name"`
@@ -249,19 +248,19 @@ func TranscribeAudio(audioData []byte, language string) (string, error) {
 
 // TTS请求
 type TTSRequest struct {
-	Text    string `json:"text"`
-	VoiceID string `json:"voice_id,omitempty"`
+	Text        string `json:"text"`
+	VoiceID     string `json:"voice_id,omitempty"`
 	ReferenceID string `json:"reference_id,omitempty"`
-	Format  string `json:"format,omitempty"` // mp3, wav, ogg
+	Format      string `json:"format,omitempty"` // mp3, wav, ogg
 }
 
 // TTS响应
 type TTSResponse struct {
-	TaskID    string `json:"task_id"`
-	Status    string `json:"status"`
-	AudioURL  string `json:"audio_url,omitempty"`
+	TaskID    string  `json:"task_id"`
+	Status    string  `json:"status"`
+	AudioURL  string  `json:"audio_url,omitempty"`
 	Duration  float64 `json:"duration,omitempty"`
-	CreatedAt string `json:"created_at"`
+	CreatedAt string  `json:"created_at"`
 }
 
 // 创建音色
@@ -406,11 +405,16 @@ func GetVoiceStatus(voiceID string) (*CreateVoiceResponse, error) {
 }
 
 // 生成语音（TTS）
-func GenerateSpeech(text, voiceID string, speed float64) (*TTSResponse, error) {
+func GenerateSpeech(text, voiceID string, speed float64, format string) (*TTSResponse, error) {
+	// 默认MP3格式
+	if format == "" {
+		format = "mp3"
+	}
+
 	reqBody := TTSRequest{
-		Text:    text,
+		Text:        text,
 		ReferenceID: voiceID,
-		Format:  "mp3",
+		Format:      format,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -457,7 +461,12 @@ func GenerateSpeech(text, voiceID string, speed float64) (*TTSResponse, error) {
 		return nil, fmt.Errorf("Fish API error: unexpected response (content-type: %s)", contentType)
 	}
 
-	filename := fmt.Sprintf("tts_%d.mp3", time.Now().UnixNano())
+	// 使用正确的文件扩展名
+	fileExt := format
+	if format == "pcm" {
+		fileExt = "wav" // PCM通常以WAV容器封装
+	}
+	filename := fmt.Sprintf("tts_%d.%s", time.Now().UnixNano(), fileExt)
 	audioURL, err := UploadFile(bytes.NewReader(body), filename, "tts")
 	if err != nil {
 		return nil, err

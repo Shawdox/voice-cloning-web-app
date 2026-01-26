@@ -25,6 +25,7 @@ type TTSTaskResponse struct {
 	VoiceName     string     `json:"voiceName"`
 	Text          string     `json:"text"`
 	Emotion       string     `json:"emotion,omitempty"`
+	Format        string     `json:"format,omitempty"` // mp3, wav, pcm, opus
 	AudioURL      string     `json:"audioUrl,omitempty"`
 	AudioDuration float64    `json:"audioDuration,omitempty"`
 	Status        string     `json:"status"`
@@ -70,12 +71,12 @@ type VIPStatusResponse struct {
 
 // RechargeOrderResponse 充值订单响应
 type RechargeOrderResponse struct {
-	OrderNo     string    `json:"orderNo"`
-	Amount      float64   `json:"amount"`
-	Points      int       `json:"points"`
-	PaymentType string    `json:"paymentType"`
-	Status      string    `json:"status"`
-	CreatedAt   time.Time `json:"createdAt"`
+	OrderNo     string     `json:"orderNo"`
+	Amount      float64    `json:"amount"`
+	Points      int        `json:"points"`
+	PaymentType string     `json:"paymentType"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"createdAt"`
 	PaidAt      *time.Time `json:"paidAt,omitempty"`
 }
 

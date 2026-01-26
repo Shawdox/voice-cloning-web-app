@@ -31,4 +31,5 @@ export interface GenerationRecord {
   progress: number;
   audioUrl?: string;
   status?: string;
+  format?: string; // 音频格式: mp3, wav, pcm, opus
 }

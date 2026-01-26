@@ -77,15 +77,27 @@ const HistoryList: React.FC<HistoryListProps> = ({ history, isLoggedIn, onClear,
     });
   };
 
-  const handleDownload = (audioUrl?: string, voiceName?: string) => {
+  const handleDownload = (audioUrl?: string, voiceName?: string, format?: string) => {
     if (!audioUrl) {
       alert('音频文件尚未生成或不可用');
       return;
     }
+    
+    // 根据格式确定文件扩展名，默认为mp3
+    let fileExt = 'mp3';
+    if (format) {
+      // format可能是 'mp3', 'wav', 'pcm', 'opus'
+      if (format === 'pcm') {
+        fileExt = 'wav'; // PCM通常以WAV容器封装
+      } else {
+        fileExt = format;
+      }
+    }
+    
     // 创建临时下载链接
     const link = document.createElement('a');
     link.href = audioUrl;
-    link.download = `${voiceName || 'audio'}_${Date.now()}.mp3`;
+    link.download = `${voiceName || 'audio'}_${Date.now()}.${fileExt}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -168,7 +180,7 @@ const HistoryList: React.FC<HistoryListProps> = ({ history, isLoggedIn, onClear,
 
               <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                 <button
-                  onClick={() => handleDownload(record.audioUrl, record.voiceName)}
+                  onClick={() => handleDownload(record.audioUrl, record.voiceName, record.format)}
                   className="size-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 active:scale-95 transition-all"
                   title="下载"
                 >

@@ -59,7 +59,7 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
   const [speed, setSpeed] = useState(1.0);
   const [displaySpeed, setDisplaySpeed] = useState(1.0);
   const [emotion, setEmotion] = useState('自然 (默认)');
-  const [format, setFormat] = useState('WAV (无损)');
+  const [format, setFormat] = useState('mp3'); // 默认MP3格式
   const [showTips, setShowTips] = useState(true);
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [vipTrialCount, setVipTrialCount] = useState(3);
@@ -472,9 +472,10 @@ const SpeechSynthesisSection: React.FC<SpeechSynthesisSectionProps> = ({
               onChange={(e) => setFormat(e.target.value)}
               className="form-select h-12 rounded-xl border-[#e8cedb] bg-[#fcf8fa] focus:ring-primary/20 focus:border-primary text-sm font-bold text-gray-700 px-4 transition-all"
             >
-              <option>WAV (无损)</option>
-              <option>MP3 (192kbps)</option>
-              <option>MP3 (320kbps)</option>
+              <option value="mp3">MP3 (44.1kHz, 128kbps)</option>
+              <option value="wav">WAV (44.1kHz, 无损)</option>
+              <option value="opus">Opus (48kHz, 32kbps)</option>
+              <option value="pcm">PCM/WAV (原始)</option>
             </select>
           </div>
         </div>

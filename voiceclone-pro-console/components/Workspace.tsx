@@ -134,6 +134,7 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
       progress: task.status === 'completed' ? 100 : (task.status === 'processing' ? 50 : 10),
       audioUrl: task.audioUrl,
       status: task.status,
+      format: task.format, // 添加格式字段
     };
   });
 
@@ -155,11 +156,13 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
 
       const normalizedText = normalizeEmotionTags(text);
       const voiceId = parseInt(selectedVoice.id);
+      
       const response = await ttsAPI.create({
         voiceId,
         text: normalizedText,
         emotion: options.emotion,
         speed: options.speed,
+        format: options.format || 'mp3', // 直接使用选择的格式，默认mp3
       });
 
       // Fetch updated TTS tasks list

@@ -111,6 +111,7 @@ export interface TTSTaskResponse {
   voiceName: string;
   text: string;
   emotion?: string;
+  format?: string; // mp3, wav, pcm, opus
   textLength: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   audioUrl?: string;
@@ -130,4 +131,5 @@ export interface CreateTTSRequest {
   text: string;
   emotion?: string;
   speed?: number;
+  format?: string; // 音频格式: mp3, wav, pcm, opus
 }
