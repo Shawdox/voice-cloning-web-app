@@ -16,6 +16,14 @@ const AppContent: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.HOME);
   const [accountSection, setAccountSection] = useState<'recharge' | 'points' | 'info' | 'security'>('recharge');
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [selectedVoiceId, setSelectedVoiceId] = useState('s1');
+
+  // Auto-switch to WORKSPACE when logged in - DISABLED to prevent flickering
+  // React.useEffect(() => {
+  //   if (isLoggedIn && currentView === AppView.HOME) {
+  //     setCurrentView(AppView.WORKSPACE);
+  //   }
+  // }, [isLoggedIn, currentView]);
 
   // Switch between views
   const handleNavigate = (view: AppView, section?: any) => {
@@ -36,9 +44,8 @@ const AppContent: React.FC = () => {
 
   const handleLogin = () => {
     setShowLoginModal(false);
-    if (currentView === AppView.HOME) {
-      handleNavigate(AppView.WORKSPACE);
-    }
+    console.log('Login success, currentView:', currentView);
+    // Don't auto-navigate - let user stay on current page
   };
 
   const handleLogout = () => {
@@ -77,10 +84,18 @@ const AppContent: React.FC = () => {
             onManageVoices={() => handleNavigate(AppView.VOICE_LIBRARY)}
             onViewVip={() => handleNavigate(AppView.VIP)}
             onLoginRequest={() => setShowLoginModal(true)}
+            initialSelectedVoiceId={selectedVoiceId}
+            onVoiceChange={setSelectedVoiceId}
           />
         );
       case AppView.VOICE_LIBRARY:
-        return <VoiceLibraryView onBack={() => handleNavigate(AppView.WORKSPACE)} isLoggedIn={isLoggedIn} />;
+        return (
+          <VoiceLibraryView 
+            onBack={() => handleNavigate(AppView.WORKSPACE)} 
+            isLoggedIn={isLoggedIn} 
+            onApplyVoice={(voiceId) => setSelectedVoiceId(voiceId)}
+          />
+        );
       case AppView.ACCOUNT:
         return (
           <AccountView

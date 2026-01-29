@@ -42,6 +42,10 @@ start() {
         echo "⚠️ 端口 3000 被占用，正在清理..."
         kill_port 3000
     fi
+    if check_port 3001; then
+        echo "⚠️ 端口 3000 被占用，正在清理..."
+        kill_port 3001
+    fi
 
     echo "🚀 正在启动 Backend (Go)..."
     cd "$BASE_DIR/backend"

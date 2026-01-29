@@ -404,6 +404,26 @@ func GetVoiceStatus(voiceID string) (*CreateVoiceResponse, error) {
 	return &result, nil
 }
 
+// 删除音色
+func DeleteVoice(voiceID string) error {
+	apiURL := fmt.Sprintf("%s/model/%s", fishClient.BaseURL, voiceID)
+	statusCode, _, body, err := fishClient.doRequestWithRetry("delete_model", func() (*http.Request, error) {
+		req, err := http.NewRequest("DELETE", apiURL, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("Authorization", "Bearer "+fishClient.APIKey)
+		return req, nil
+	})
+	if err != nil {
+		return err
+	}
+	if statusCode != http.StatusOK && statusCode != http.StatusNoContent && statusCode != http.StatusAccepted {
+		return fmt.Errorf("Fish API error: %s (status: %d)", string(body), statusCode)
+	}
+	return nil
+}
+
 // 生成语音（TTS）
 func GenerateSpeech(text, voiceID string, speed float64, format string) (*TTSResponse, error) {
 	// 默认MP3格式
@@ -547,4 +567,109 @@ func UploadAudioToFish(fileReader io.Reader, filename string) (string, error) {
 	}
 
 	return result.URL, nil
+}
+
+// Fish Model Entity
+type FishModelEntity struct {
+	ID          string       `json:"_id"`
+	Type        string       `json:"type"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	CoverImage  string       `json:"cover_image"`
+	Languages   []string     `json:"languages"`
+	Tags        []string     `json:"tags"`
+	Samples     []FishSample `json:"samples"`
+	CreatedAt   string       `json:"created_at"`
+}
+
+// Fish Sample
+type FishSample struct {
+	Title string `json:"title"`
+	Text  string `json:"text"`
+	Audio string `json:"audio"`
+}
+
+// List Models Response
+type FishListModelsResponse struct {
+	Total int               `json:"total"`
+	Items []FishModelEntity `json:"items"`
+}
+
+// PredefinedVoice for API response
+type PredefinedVoice struct {
+	FishVoiceID string   `json:"fish_voice_id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Language    string   `json:"language"`
+	Gender      string   `json:"gender"`
+	CoverImage  string   `json:"cover_image"`
+	SampleURL   string   `json:"sample_url"`
+	SampleText  string   `json:"sample_text"`
+	Tags        []string `json:"tags"`
+}
+
+// ListPredefinedVoices returns 8 predefined voices: male/female in Chinese, English, Japanese, Korean
+func ListPredefinedVoices() ([]PredefinedVoice, error) {
+	predefinedVoiceIDs := []struct {
+		ID       string
+		Language string
+		Gender   string
+	}{
+		{"ca8fb681ce2040958c15ede5eef86177", "zh", "male"},   // 男生中文: 郑翔洲
+		{"7f92f8afb8ec43bf81429cc1c9199cb1", "zh", "female"}, // 女生中文: AD学姐
+		{"802e3bc2b27e49c2995d23ef70e6ac89", "en", "male"},   // 男生英文: Energetic Male
+		{"b545c585f631496c914815291da4e893", "en", "female"}, // 女生英文: Friendly Women
+		{"8f99ad75c8184f1db0c21d3a906445a4", "ja", "male"},   // 男生日文: 士道
+		{"5161d41404314212af1254556477c17d", "ja", "female"}, // 女生日文: 元気な女性
+		{"078c1b6c34714bba92371c3386716823", "ko", "male"},   // 男生韩文: 韩男
+		{"9aae54921dd944948ee08d35f6b5f984", "ko", "female"}, // 女生韩文: 유라-기쁨-
+	}
+
+	voices := make([]PredefinedVoice, 0, len(predefinedVoiceIDs))
+
+	for _, pv := range predefinedVoiceIDs {
+		apiURL := fmt.Sprintf("%s/model/%s", fishClient.BaseURL, pv.ID)
+		statusCode, _, body, err := fishClient.doRequestWithRetry("get_model", func() (*http.Request, error) {
+			req, err := http.NewRequest("GET", apiURL, nil)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Authorization", "Bearer "+fishClient.APIKey)
+			return req, nil
+		})
+		if err != nil {
+			continue
+		}
+		if statusCode != http.StatusOK {
+			continue
+		}
+
+		var model FishModelEntity
+		if err := json.Unmarshal(body, &model); err != nil {
+			continue
+		}
+
+		sampleURL := ""
+		sampleText := ""
+		if len(model.Samples) > 0 {
+			sampleURL = model.Samples[0].Audio
+			sampleText = model.Samples[0].Text
+		}
+
+		voice := PredefinedVoice{
+			FishVoiceID: model.ID,
+			Name:        model.Title,
+			Description: model.Description,
+			Language:    pv.Language,
+			Gender:      pv.Gender,
+			CoverImage:  model.CoverImage,
+			SampleURL:   sampleURL,
+			SampleText:  sampleText,
+			Tags:        model.Tags,
+		}
+
+		voices = append(voices, voice)
+	}
+
+	return voices, nil
 }

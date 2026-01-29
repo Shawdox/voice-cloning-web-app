@@ -11,6 +11,7 @@ import HistoryList from './HistoryList';
 
 const EMOTION_TAG_MAP: Record<string, string> = {
   '开心': 'happy',
+  '高兴': 'happy',
   '悲伤': 'sad',
   '愤怒': 'angry',
   '激动': 'excited',
@@ -40,12 +41,21 @@ interface WorkspaceProps {
   onManageVoices: () => void;
   onViewVip: () => void;
   onLoginRequest: () => void;
+  initialSelectedVoiceId?: string;
+  onVoiceChange?: (voiceId: string) => void;
 }
 
-const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onViewVip, onLoginRequest }) => {
+const Workspace: React.FC<WorkspaceProps> = ({ 
+  isLoggedIn, 
+  onManageVoices, 
+  onViewVip, 
+  onLoginRequest,
+  initialSelectedVoiceId = 's1',
+  onVoiceChange
+}) => {
   const [voices, setVoices] = useState<Voice[]>(INITIAL_VOICES);
   const [history, setHistory] = useState(isLoggedIn ? INITIAL_HISTORY : []);
-  const [selectedVoiceId, setSelectedVoiceId] = useState('s1');
+  const [selectedVoiceId, setSelectedVoiceId] = useState(initialSelectedVoiceId);
   const [isGenerating, setIsGenerating] = useState(false);
   const [ttsTasks, setTtsTasks] = useState<TTSTaskResponse[]>([]);
 
@@ -149,13 +159,15 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
     setIsGenerating(true);
     try {
       const selectedVoice = voices.find(v => v.id === selectedVoiceId);
-      if (!selectedVoice || selectedVoice.type === 'system') {
-        alert('请选择一个已完成的用户音色');
+      if (!selectedVoice) {
+        alert('请选择一个音色');
         return;
       }
 
+      // For system voices, use the fish_voice_id directly
+      // For user voices, parse the ID as number
       const normalizedText = normalizeEmotionTags(text);
-      const voiceId = parseInt(selectedVoice.id);
+      const voiceId = selectedVoice.type === 'system' ? selectedVoice.id : parseInt(selectedVoice.id);
       
       const response = await ttsAPI.create({
         voiceId,
@@ -237,7 +249,10 @@ const Workspace: React.FC<WorkspaceProps> = ({ isLoggedIn, onManageVoices, onVie
               <VoiceLibrary 
                 voices={voices} 
                 selectedVoiceId={selectedVoiceId} 
-                onSelectVoice={setSelectedVoiceId}
+                onSelectVoice={(voiceId) => {
+                  setSelectedVoiceId(voiceId);
+                  if (onVoiceChange) onVoiceChange(voiceId);
+                }}
                 onManageVoices={onManageVoices}
               />
             </div>

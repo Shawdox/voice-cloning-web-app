@@ -224,6 +224,18 @@ def generate_with_voice_id(api_key, voice_id, text_to_speak, output_audio_path="
 def emotion_control_test(api_key, input_audio_path, text_to_speak, output_audio_path="fish_audio_emotion_control.mp3"):
     pass
 
+
+
+
+@timer_decorator
+def voice_list(api_key):
+    client = FishAudio(api_key=api_key)
+
+    # 获取公开的 voice 列表
+    voices = client.voices.list(page_size=20, tags=['male', 'chinese'])
+    for voice in voices.items:
+        print(f"{voice.title}: {voice.id}")
+
 @timer_decorator
 def main():
     model = "s1"
@@ -279,4 +291,5 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    #main()
+    voice_list(os.getenv("FISH_API_KEY"))

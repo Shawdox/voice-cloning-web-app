@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"io"
+	"log"
 	"net/http"
 	"strconv"
-	"log"
 	"time"
 	"voice-clone-backend/database"
 	"voice-clone-backend/middleware"
@@ -268,6 +268,15 @@ func DeleteVoice(c *gin.Context) {
 		return
 	}
 
+	// 同时从Fish Audio删除
+	if voice.FishVoiceID != nil && *voice.FishVoiceID != "" {
+		go func(fishID string) {
+			if err := services.DeleteVoice(fishID); err != nil {
+				log.Printf("failed to delete voice from fish audio: %v", err)
+			}
+		}(*voice.FishVoiceID)
+	}
+
 	c.JSON(http.StatusOK, models.SuccessResponse{Message: "音色已删除"})
 }
 
@@ -284,4 +293,18 @@ func GetVoiceStatus(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, voice.ToVoiceResponse())
+}
+
+// 获取系统预定义音色列表
+func GetPredefinedVoices(c *gin.Context) {
+	voices, err := services.ListPredefinedVoices()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ErrorResponse{Message: "获取预定义音色失败: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, models.SuccessResponse{
+		Message: "获取成功",
+		Data:    voices,
+	})
 }

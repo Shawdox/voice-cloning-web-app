@@ -41,6 +41,7 @@ func AutoMigrate() error {
 		&models.RechargeOrder{},
 		&models.Voice{},
 		&models.TTSTask{},
+		&models.UploadedFile{},
 		&models.Admin{},
 		&models.TrafficLog{},
 	)

@@ -1,0 +1,15 @@
+{
+  "name": "voiceclone-e2e-tests",
+  "version": "1.0.0",
+  "description": "E2E tests for VoiceClone Pro",
+  "scripts": {
+    "test": "python3 run_e2e_tests.py",
+    "test:ui": "npx playwright test -c playwright.config.ts --ui",
+    "test:headed": "npx playwright test -c playwright.config.ts --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.2"
+  }
+}

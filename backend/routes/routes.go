@@ -33,17 +33,20 @@ func SetupRoutes(r *gin.Engine) {
 
 			// 文件上传
 			authorized.POST("/upload/audio", handlers.UploadAudio)
+			authorized.GET("/upload/audio", handlers.GetUploadedFiles)
+			authorized.DELETE("/upload/audio/:id", handlers.DeleteUploadedFile)
 			authorized.POST("/upload/text", handlers.UploadText)
 
 			// 音色管理
 			voices := authorized.Group("/voices")
 			{
-				voices.POST("", handlers.CreateVoice)              // 创建音色
-				voices.GET("", handlers.GetVoices)                 // 获取音色列表
-				voices.GET("/:id", handlers.GetVoice)              // 获取音色详情
-				voices.PATCH("/:id", handlers.UpdateVoice)         // 更新音色（置顶等）
-				voices.GET("/:id/status", handlers.GetVoiceStatus) // 查询音色状态
-				voices.DELETE("/:id", handlers.DeleteVoice)        // 删除音色
+				voices.POST("", handlers.CreateVoice)                   // 创建音色
+				voices.GET("", handlers.GetVoices)                      // 获取音色列表
+				voices.GET("/predefined", handlers.GetPredefinedVoices) // 获取系统预定义音色
+				voices.GET("/:id", handlers.GetVoice)                   // 获取音色详情
+				voices.PATCH("/:id", handlers.UpdateVoice)              // 更新音色（置顶等）
+				voices.GET("/:id/status", handlers.GetVoiceStatus)      // 查询音色状态
+				voices.DELETE("/:id", handlers.DeleteVoice)             // 删除音色
 			}
 
 			// TTS生成
@@ -62,17 +65,17 @@ func SetupRoutes(r *gin.Engine) {
 			// VIP管理
 			vip := authorized.Group("/vip")
 			{
-				vip.GET("/status", handlers.GetVIPStatus)   // 查询VIP状态
-				vip.POST("/upgrade", handlers.UpgradeVIP)   // 升级VIP
+				vip.GET("/status", handlers.GetVIPStatus) // 查询VIP状态
+				vip.POST("/upgrade", handlers.UpgradeVIP) // 升级VIP
 			}
 
 			// 积分管理
 			credits := authorized.Group("/credits")
 			{
-				credits.GET("/balance", handlers.GetCreditsBalance)      // 查询积分余额
+				credits.GET("/balance", handlers.GetCreditsBalance)          // 查询积分余额
 				credits.GET("/transactions", handlers.GetCreditTransactions) // 交易记录
-				credits.POST("/recharge", handlers.CreateRechargeOrder)       // 创建充值订单
-				credits.GET("/orders/:order_no", handlers.CheckOrderStatus)   // 查询订单状态
+				credits.POST("/recharge", handlers.CreateRechargeOrder)      // 创建充值订单
+				credits.GET("/orders/:order_no", handlers.CheckOrderStatus)  // 查询订单状态
 			}
 		}
 

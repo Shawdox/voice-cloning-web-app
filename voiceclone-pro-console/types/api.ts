@@ -90,11 +90,38 @@ export interface VoicesListResponse {
   total: number;
 }
 
+export interface PredefinedVoice {
+  fish_voice_id: string;
+  name: string;
+  description: string;
+  language: string;
+  gender: string;
+  cover_image: string;
+  sample_url: string;
+  sample_text: string;
+  tags: string[];
+}
+
+export interface PredefinedVoicesResponse {
+  message: string;
+  data: PredefinedVoice[];
+}
+
 export interface UploadAudioResponse {
   message: string;
   file_url: string;
   filename: string;
   size: number;
+  id?: number;
+}
+
+export interface UploadedFileResponse {
+  id: number;
+  filename: string;
+  file_url: string;
+  size: number;
+  type: string;
+  created_at: string;
 }
 
 export interface CreateVoiceRequest {

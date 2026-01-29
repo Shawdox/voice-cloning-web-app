@@ -68,3 +68,17 @@ type TTSTask struct {
 	User  User  `gorm:"foreignKey:UserID" json:"user,omitempty"`
 	Voice Voice `gorm:"foreignKey:VoiceID" json:"voice,omitempty"`
 }
+
+// 已上传的音频文件模型
+type UploadedFile struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
+	UserID   uint   `gorm:"index;not null" json:"user_id"`
+	Filename string `gorm:"size:255;not null" json:"filename"`
+	FileURL  string `gorm:"size:500;not null" json:"file_url"`
+	Size     int64  `json:"size"`
+	Type     string `gorm:"size:20;default:'audio'" json:"type"` // audio, text
+}

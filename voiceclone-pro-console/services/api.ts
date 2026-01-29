@@ -9,6 +9,7 @@ import type {
   SuccessResponse,
   VoiceResponse,
   VoicesListResponse,
+  PredefinedVoicesResponse,
   UploadAudioResponse,
   CreateVoiceRequest,
   TTSTaskResponse,
@@ -166,6 +167,16 @@ export const voiceAPI = {
     return response.json();
   },
 
+  async getUploadedFiles(type = 'audio'): Promise<import('../types/api').UploadedFileResponse[]> {
+    return fetchAPI<import('../types/api').UploadedFileResponse[]>(`/upload/audio?type=${type}`);
+  },
+
+  async deleteUploadedFile(id: number): Promise<SuccessResponse> {
+    return fetchAPI<SuccessResponse>(`/upload/audio/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   async create(data: CreateVoiceRequest): Promise<SuccessResponse> {
     return fetchAPI<SuccessResponse>('/voices', {
       method: 'POST',
@@ -196,6 +207,10 @@ export const voiceAPI = {
     return fetchAPI<SuccessResponse>(`/voices/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  async getPredefined(): Promise<PredefinedVoicesResponse> {
+    return fetchAPI<PredefinedVoicesResponse>('/voices/predefined');
   },
 };
 
