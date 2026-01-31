@@ -1,31 +1,9 @@
 
 import { Voice, GenerationRecord } from './types';
 
-export const INITIAL_VOICES: Voice[] = [
-  {
-    id: 's1',
-    name: '标准男声',
-    type: 'system',
-    status: 'ready',
-    createdDate: 'System',
-    tag: '基础'
-  },
-  {
-    id: 's2',
-    name: '甜美童声',
-    type: 'system',
-    status: 'ready',
-    createdDate: 'System',
-    tag: '推荐'
-  },
-  {
-    id: 's3',
-    name: '新闻主播',
-    type: 'system',
-    status: 'ready',
-    createdDate: 'System'
-  }
-];
+// @deprecated - Use voiceAPI.getPredefined() instead. This constant is no longer used.
+// Kept for backward compatibility only.
+export const INITIAL_VOICES: Voice[] = [];
 
 export const INITIAL_HISTORY: GenerationRecord[] = [
   {

@@ -1,0 +1,32 @@
+> ## Documentation Index
+>
+> Fetch the complete documentation index at: <https://docs.fish.audio/llms.txt>
+> Use this file to discover all available pages before exploring further.
+
+# Introduction
+
+> How to use the Fish Audio API
+
+## Welcome
+
+You can generate a new API key at [https://fish.audio/app/api-keys/](https://fish.audio/app/api-keys/).
+
+## Quick Start
+
+See our [Quick Start](/developer-guide/getting-started/quickstart) guide to generate audio in under 2 minutes.
+
+## Create a Voice Clone
+
+Use our [/model endpoint](/api-reference/endpoint/model/create-model) to create a voice clone model.
+
+## Generate Speech
+
+Use our [/v1/tts endpoint](/api-reference/endpoint/openapi-v1/text-to-speech) to generate speech.
+
+## Real-time Streaming
+
+Use our [Python SDK](/developer-guide/sdk-guide/python/websocket) or [JavaScript SDK](/developer-guide/sdk-guide/javascript/websocket) for real-time audio streaming with WebSocket.
+
+## Rate Limits
+
+You can find the rate limits for each endpoint in the [Rate Limits](/developer-guide/models-pricing/pricing-and-rate-limits) section.

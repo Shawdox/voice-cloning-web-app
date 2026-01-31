@@ -1,26 +1,25 @@
 # E2E测试文档
 
 ## 概述
-本目录包含了AI语音克隆网站的端到端(E2E)测试，遵循TDD原则编写。测试覆盖了声音克隆、文件管理、声音库和语音生成的完整流程。
+本目录包含AI语音克隆网站的端到端(E2E)测试，覆盖声音克隆、积分扣除、声音库和语音生成的完整流程。
 
 ## 测试环境
 - **前端**: http://localhost:3000 (Vite + React)
 - **后端**: http://localhost:8080 (Go + Gin)
-- **测试框架**: Playwright (Python)
+- **测试框架**: Playwright (TypeScript)
 - **测试用户**: xiaowu.417@qq.com / 1234qwer
 
 ## 测试文件
 
 | 脚本文件 | 说明 | 执行时间 |
 |---------|------|---------|
-| `run_e2e_tests.py` | 完整测试套件(Test 1-5) | ~5-10分钟 |
-| `cleanup_via_api.py` | API清理测试数据 | ~10秒 |
-| `cleanup_test_data.py` | UI清理测试数据(备用) | ~1-2分钟 |
-| `run_all_tests_with_cleanup.sh` | 测试+自动清理 | ~5-10分钟 |
+| `e2e/credit_system.spec.ts` | 积分系统E2E (Test 10-12) | ~2-4分钟 |
+| `e2e/voice_clone.spec.ts` | 声音克隆与声音库 | ~1-3分钟 |
+| `e2e/test6-simple.spec.ts` | 预定义音色展示 | ~10-20秒 |
+| `delete_user_account.py` | 清理用户/文件/音色(含OSS) | ~10-20秒 |
 
 其他文件：
-- `playwright.config.ts` - Playwright配置(TypeScript版本)
-- `e2e/voice_clone.spec.ts` - TypeScript测试规格(备用)
+- `playwright.config.ts` - Playwright配置
 
 ## 如何运行测试
 
@@ -29,8 +28,8 @@
 # 启动服务
 ./run_frontend_and_backend.sh start
 
-# 运行完整测试(包含Test 1-5)
-python3 tests/run_e2e_tests.py
+# 运行完整E2E
+npx playwright test
 
 # 清理测试数据
 python3 tests/cleanup_via_api.py
@@ -39,20 +38,15 @@ python3 tests/cleanup_via_api.py
 ./run_frontend_and_backend.sh stop
 ```
 
-### 方式2: 一键运行(自动清理)
-```bash
-./tests/run_all_tests_with_cleanup.sh
-```
-
 ### 仅清理测试数据
 ```bash
-python3 tests/cleanup_via_api.py
+python3 tests/delete_user_account.py <email> <password>
 ```
 
 ## 测试场景
 
-### Test 1: 声音克隆、文件上传和管理
-**目标**: 验证用户可以上传音频、克隆声音、重用已上传文件、并删除文件
+### Test 10-12: 积分系统与无限积分账号
+**目标**: 验证注册积分、生成扣费、余额不足提示、无限积分账号规则
 
 **步骤**:
 1. 用户登录系统
@@ -71,8 +65,8 @@ python3 tests/cleanup_via_api.py
 - ✅ 文件删除功能正常
 - ✅ 删除文件后音色不受影响
 
-### Test 2: 重新登录和实时更新
-**目标**: 验证用户重新登录后的功能和实时UI更新
+### Test 1-6: 声音克隆与声音库流程
+**目标**: 验证音色创建、预定义音色使用、声音库展示与操作
 
 **步骤**:
 1. 用户登出并重新登录
@@ -84,8 +78,8 @@ python3 tests/cleanup_via_api.py
 - ✅ 上传后实时显示音色(无需刷新)
 - ✅ 上传后实时显示文件列表(无需刷新)
 
-### Test 3: 通过API删除音色
-**目标**: 验证音色删除功能，包括Fish Audio平台的同步删除
+### Test 6: 预定义音色展示
+**目标**: 验证预定义音色列表和展示状态
 
 **步骤**:
 1. 导航到"声音库"页面
@@ -101,8 +95,8 @@ python3 tests/cleanup_via_api.py
 
 **API调用**: `DELETE https://api.fish.audio/model/{id}`
 
-### Test 4: 声音库和语音合成(含情感标签)
-**目标**: 验证声音库应用、情感标签转换和TTS生成完整流程
+### Test 4: 声音库与语音合成
+**目标**: 验证声音库应用与TTS生成流程
 
 **步骤**:
 1. 等待音色训练完成(最多5分钟)
@@ -128,19 +122,15 @@ python3 tests/cleanup_via_api.py
 ## 实现的功能
 
 ### 后端
-1. **UploadedFile模型** - 追踪用户上传的音频文件
-2. **GET /api/v1/upload/audio** - 获取已上传文件列表
-3. **DELETE /api/v1/upload/audio/:id** - 删除已上传文件(同步删除OSS)
-4. **DeleteVoice服务** - 调用Fish Audio API删除音色
-5. **情感标签映射** - 将中文情感标签转换为英文
+1. **TTS积分计费** - 按UTF-8字节数计费，5000字节上限
+2. **TTS支持预定义音色** - 允许预定义音色ID
+3. **积分规则** - 语音生成扣费，音色创建免费
+4. **预定义音色列表** - 内置8个音色信息
 
 ### 前端
-1. **已上传文件列表** - 在VoiceCloningSection显示历史上传
-2. **文件重用功能** - 点击已上传文件可重新使用
-3. **文件删除功能** - 删除已上传文件及OSS存储
-4. **声音库应用** - 从声音库选择音色并应用到工作台
-5. **情感标签转换** - 支持"高兴"等中文标签自动转换
-6. **实时UI更新** - 上传、克隆、生成后自动刷新列表
+1. **积分显示与刷新** - 生成后刷新余额
+2. **文本字节数限制** - 前端先行校验5000字节
+3. **余额不足提示** - 显示充值入口按钮
 
 ### Test 5: UI界面验证
 **目标**: 验证界面元素的正确性和导航功能
@@ -158,20 +148,16 @@ python3 tests/cleanup_via_api.py
 
 ## 测试清理
 
-**重要**: 所有测试运行完后，会自动清理产生的数据：
-- 上传的音频文件(数据库+OSS)
-- 生成的音色(数据库+Fish Audio平台)
-- 生成的TTS音频(数据库+OSS)
-- 测试日志文件
+**说明**: 可使用清理脚本删除用户及其OSS资源。
 
 **手动清理命令**:
 ```bash
-python3 tests/cleanup_via_api.py
+python3 tests/delete_user_account.py <email> <password>
 ```
 
 ## 测试结果
 
-**状态**: ✅ 所有测试通过(Test 1-5)
+**状态**: ✅ E2E测试通过
 
 **执行时间**: 
 - 完整测试: 5-10分钟(含训练等待)
@@ -179,16 +165,10 @@ python3 tests/cleanup_via_api.py
 
 **测试覆盖**:
 - 用户认证和登录
-- 音频文件上传和OSS存储
-- 声音克隆和Fish Audio集成
-- 文件列表查询和删除
-- 文件重用功能
-- 声音库管理
-- 音色删除(Fish Audio同步)
-- TTS语音合成
-- 情感标签处理
-- 生成历史管理
-- UI界面元素验证
+- 声音克隆与预定义音色使用
+- 积分扣费、余额不足与无限积分
+- TTS语音合成与长度校验
+- 声音库展示与操作
 
 ## 已知问题和注意事项
 

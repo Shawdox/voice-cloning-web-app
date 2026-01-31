@@ -8,7 +8,7 @@ export enum AppView {
   VIP = 'vip'
 }
 
-export type VoiceType = 'user' | 'system';
+export type VoiceType = 'user' | 'predefined';
 
 export interface Voice {
   id: string;
