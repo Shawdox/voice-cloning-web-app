@@ -1,18 +1,27 @@
 
 import React, { useState } from 'react';
 import { Voice, VoiceType } from '../types';
+import { PredefinedVoice } from '../types/api';
 
 interface VoiceLibraryProps {
   voices: Voice[];
+  predefinedVoices?: PredefinedVoice[];
   selectedVoiceId: string;
   onSelectVoice: (id: string) => void;
   onManageVoices: () => void;
 }
 
-const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ voices, selectedVoiceId, onSelectVoice, onManageVoices }) => {
-  const [activeTab, setActiveTab] = useState<VoiceType>('user');
+const VoiceLibrary: React.FC<VoiceLibraryProps> = ({
+  voices,
+  predefinedVoices = [],
+  selectedVoiceId,
+  onSelectVoice,
+  onManageVoices
+}) => {
+  const [activeTab, setActiveTab] = useState<VoiceType | 'predefined'>('user');
 
-  const filteredVoices = voices.filter(v => v.type === activeTab);
+  const filteredVoices = activeTab === 'predefined' ? [] : voices.filter(v => v.type === activeTab);
+  const displayPredefined = activeTab === 'predefined';
 
   return (
     <div className="flex flex-col bg-white rounded-2xl border border-[#e8cedb] shadow-sm overflow-hidden">
@@ -22,15 +31,15 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ voices, selectedVoiceId, on
           我的声音库
         </h3>
         <div className="flex p-1 bg-gray-50/50 border border-[#e8cedb] rounded-xl">
-          <button 
+          <button
             onClick={() => setActiveTab('user')}
             className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${activeTab === 'user' ? 'bg-primary text-white shadow-lg shadow-pink-100' : 'text-gray-400 hover:text-primary'}`}
           >
             我的创作
           </button>
-          <button 
-            onClick={() => setActiveTab('system')}
-            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${activeTab === 'system' ? 'bg-primary text-white shadow-lg shadow-pink-100' : 'text-gray-400 hover:text-primary'}`}
+          <button
+            onClick={() => setActiveTab('predefined')}
+            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${activeTab === 'predefined' ? 'bg-primary text-white shadow-lg shadow-pink-100' : 'text-gray-400 hover:text-primary'}`}
           >
             系统预设
           </button>
@@ -38,7 +47,48 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ voices, selectedVoiceId, on
       </div>
 
       <div className="p-3 space-y-3">
-        {filteredVoices.map(voice => (
+        {displayPredefined ? (
+          predefinedVoices.map(voice => (
+            <div
+              key={voice.fish_voice_id}
+              onClick={() => onSelectVoice(voice.fish_voice_id)}
+              className={`group p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                selectedVoiceId === voice.fish_voice_id
+                  ? 'border-primary bg-white shadow-[0_8px_30px_rgb(245,61,153,0.12)]'
+                  : 'border-transparent bg-gradient-to-r from-purple-50 to-pink-50 hover:border-primary/30 hover:shadow-lg'
+              }`}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <div className={`size-10 rounded-full flex items-center justify-center shadow-sm transition-all ${
+                  selectedVoiceId === voice.fish_voice_id
+                    ? 'bg-primary text-white shadow-pink-200'
+                    : 'bg-white text-purple-500'
+                }`}>
+                  <span className="material-symbols-outlined text-xl">record_voice_over</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black text-[#1c0d14] truncate">{voice.name}</h4>
+                  <p className="text-[10px] text-gray-500 font-medium">
+                    {voice.language === 'zh' ? '中文' : voice.language === 'en' ? '英文' : voice.language === 'ja' ? '日文' : '韩文'}
+                    {' · '}
+                    {voice.gender === 'male' ? '男生' : '女生'}
+                  </p>
+                </div>
+                {selectedVoiceId === voice.fish_voice_id && (
+                  <span className="material-symbols-outlined text-primary text-lg animate-[fadeIn_0.3s]">check_circle</span>
+                )}
+              </div>
+              <div className={`text-[10px] font-bold px-2 py-1 rounded-lg inline-block ${
+                selectedVoiceId === voice.fish_voice_id
+                  ? 'text-primary bg-pink-50'
+                  : 'text-purple-600 bg-white/50'
+              }`}>
+                {selectedVoiceId === voice.fish_voice_id ? '已选择' : '点击使用此音色'}
+              </div>
+            </div>
+          ))
+        ) : (
+          filteredVoices.map(voice => (
           <div 
             key={voice.id}
             onClick={() => voice.status === 'ready' && onSelectVoice(voice.id)}
@@ -116,12 +166,20 @@ const VoiceLibrary: React.FC<VoiceLibraryProps> = ({ voices, selectedVoiceId, on
               </div>
             )}
           </div>
-        ))}
+        ))
+        )}
 
-        {filteredVoices.length === 0 && (
+        {!displayPredefined && filteredVoices.length === 0 && (
           <div className="py-16 text-center flex flex-col items-center gap-2">
             <span className="material-symbols-outlined text-gray-100 text-6xl">cloud_off</span>
             <p className="text-xs font-black text-gray-300 italic">暂无可用声音</p>
+          </div>
+        )}
+
+        {displayPredefined && predefinedVoices.length === 0 && (
+          <div className="py-16 text-center flex flex-col items-center gap-2">
+            <span className="material-symbols-outlined text-gray-100 text-6xl">cloud_off</span>
+            <p className="text-xs font-black text-gray-300 italic">暂无预定义音色</p>
           </div>
         )}
       </div>

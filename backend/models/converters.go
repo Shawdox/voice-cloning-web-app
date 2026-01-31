@@ -41,9 +41,14 @@ func (v *Voice) ToVoiceResponse() VoiceResponse {
 
 // ToTTSTaskResponse 将TTSTask模型转换为TTSTaskResponse DTO
 func (t *TTSTask) ToTTSTaskResponse(voiceName string) TTSTaskResponse {
+	var voiceID uint
+	if t.VoiceID != nil {
+		voiceID = *t.VoiceID
+	}
+
 	return TTSTaskResponse{
 		ID:            t.ID,
-		VoiceID:       t.VoiceID,
+		VoiceID:       voiceID,
 		VoiceName:     voiceName,
 		Text:          t.Text,
 		Emotion:       t.Emotion,

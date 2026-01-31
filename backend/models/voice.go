@@ -46,8 +46,8 @@ type TTSTask struct {
 	UpdatedAt time.Time      `json:"updated_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	UserID  uint `gorm:"index;not null" json:"user_id"`
-	VoiceID uint `gorm:"index;not null" json:"voice_id"`
+	UserID  uint  `gorm:"index;not null" json:"user_id"`
+	VoiceID *uint `gorm:"index" json:"voice_id"` // 可为空，预定义音色时为NULL
 
 	Text          string  `gorm:"type:text;not null" json:"text"`      // 要合成的文本
 	TextLength    int     `json:"text_length"`                         // 文本长度

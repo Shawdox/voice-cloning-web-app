@@ -15,11 +15,11 @@ import (
 
 // 创建TTS任务请求
 type CreateTTSRequest struct {
-	VoiceID uint    `json:"voiceId" binding:"required"` // camelCase
-	Text    string  `json:"text" binding:"required"`
-	Emotion string  `json:"emotion"` // 情感标签
-	Speed   float64 `json:"speed"`
-	Format  string  `json:"format"` // 音频格式: mp3, wav, pcm, opus
+	VoiceID interface{} `json:"voiceId" binding:"required"` // 可以是uint(用户音色)或string(预定义音色)
+	Text    string      `json:"text" binding:"required"`
+	Emotion string      `json:"emotion"` // 情感标签
+	Speed   float64     `json:"speed"`
+	Format  string      `json:"format"` // 音频格式: mp3, wav, pcm, opus
 }
 
 // 创建TTS任务
@@ -38,8 +38,10 @@ func CreateTTS(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "文本内容不能为空"})
 		return
 	}
-	if len(req.Text) > 10000 {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "文本长度不能超过10000字符"})
+	// 计算UTF-8字节数
+	byteCount := len([]byte(req.Text))
+	if byteCount > 5000 {
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "该输入过长，无法生成语音"})
 		return
 	}
 
@@ -62,35 +64,62 @@ func CreateTTS(c *gin.Context) {
 		return
 	}
 
-	// 验证音色是否存在且属于当前用户
-	var voice models.Voice
-	err := database.DB.Where("id = ? AND user_id = ?", req.VoiceID, userID).First(&voice).Error
-	if err != nil {
-		c.JSON(http.StatusNotFound, models.ErrorResponse{Message: "音色不存在"})
-		return
-	}
+	// 验证音色是否存在
+	var fishVoiceID string
+	var voiceID uint
+	var voiceName string
 
-	// 检查音色是否已完成
-	if voice.Status != "completed" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "音色尚未完成克隆，请稍后再试"})
-		return
-	}
+	// 判断VoiceID类型：字符串(预定义音色)或数字(用户音色)
+	switch v := req.VoiceID.(type) {
+	case string:
+		// 预定义音色：直接使用fish_voice_id
+		fishVoiceID = v
+		voiceName = "预定义音色"
+		voiceID = 0 // 预定义音色没有数据库ID
+	case float64:
+		// JSON数字会被解析为float64
+		voiceID = uint(v)
+		// 查询用户音色
+		var voice models.Voice
+		err := database.DB.Where("id = ? AND user_id = ?", voiceID, userID).First(&voice).Error
+		if err != nil {
+			c.JSON(http.StatusNotFound, models.ErrorResponse{Message: "音色不存在"})
+			return
+		}
 
-	if voice.FishVoiceID == nil || *voice.FishVoiceID == "" {
-		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "音色信息不完整，请稍后重试"})
+		// 检查音色是否已完成
+		if voice.Status != "completed" {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "音色尚未完成克隆，请稍后再试"})
+			return
+		}
+
+		if voice.FishVoiceID == nil || *voice.FishVoiceID == "" {
+			c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "音色信息不完整，请稍后重试"})
+			return
+		}
+
+		fishVoiceID = *voice.FishVoiceID
+		voiceName = voice.Name
+	default:
+		c.JSON(http.StatusBadRequest, models.ErrorResponse{Message: "音色ID格式错误"})
 		return
 	}
 
 	// 检查并扣除积分
-	if err := services.ChargeForTTSGeneration(userID); err != nil {
+	if err := services.ChargeForTTSGeneration(userID, req.Text); err != nil {
 		c.JSON(http.StatusPaymentRequired, models.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	// 创建TTS任务记录
+	var voiceIDPtr *uint
+	if voiceID != 0 {
+		voiceIDPtr = &voiceID
+	}
+
 	task := models.TTSTask{
 		UserID:     userID,
-		VoiceID:    req.VoiceID,
+		VoiceID:    voiceIDPtr,
 		Text:       req.Text,
 		Emotion:    req.Emotion,
 		Format:     req.Format,
@@ -106,11 +135,11 @@ func CreateTTS(c *gin.Context) {
 	}
 
 	// 启动异步任务处理TTS生成
-	go processTTSGeneration(requestID, userID, task.ID, req.VoiceID, *voice.FishVoiceID, req.Text, req.Speed, req.Format)
+	go processTTSGeneration(requestID, userID, task.ID, voiceID, fishVoiceID, req.Text, req.Speed, req.Format)
 
 	c.JSON(http.StatusCreated, models.SuccessResponse{
 		Message: "TTS任务已提交",
-		Data:    task.ToTTSTaskResponse(voice.Name),
+		Data:    task.ToTTSTaskResponse(voiceName),
 	})
 }
 

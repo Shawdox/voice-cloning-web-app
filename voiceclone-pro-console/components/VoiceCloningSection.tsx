@@ -28,6 +28,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileResponse[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
   const [reusedFile, setReusedFile] = useState<UploadedFileResponse | null>(null);
+  const [selectedPredefinedVoice, setSelectedPredefinedVoice] = useState<PredefinedVoice | null>(null);
   const [predefinedVoices, setPredefinedVoices] = useState<PredefinedVoice[]>([]);
   const [isLoadingPredefined, setIsLoadingPredefined] = useState(false);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
@@ -132,6 +133,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
     setUploadStep('idle');
     setSelectedFile(null);
     setReusedFile(null);
+    setSelectedPredefinedVoice(null);
     setVoiceName('');
     setUploadProgress(0);
     setErrorMessage('');
@@ -141,13 +143,19 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
   };
 
   const handleStartCloning = async () => {
-    if ((!selectedFile && !reusedFile) || !voiceName.trim()) return;
+    if ((!selectedFile && !reusedFile && !selectedPredefinedVoice) || !voiceName.trim()) return;
 
     try {
       let audioFileUrl = '';
       let audioFileName = '';
 
-      if (reusedFile) {
+      if (selectedPredefinedVoice) {
+        // Use predefined voice sample
+        audioFileUrl = selectedPredefinedVoice.sample_url;
+        audioFileName = `${selectedPredefinedVoice.name}_sample.mp3`;
+        setUploadStep('creating');
+        setUploadProgress(50);
+      } else if (reusedFile) {
         audioFileUrl = reusedFile.file_url;
         audioFileName = reusedFile.filename;
         setUploadStep('creating');
@@ -161,7 +169,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
         audioFileUrl = uploadResult.file_url;
         audioFileName = uploadResult.filename;
         setUploadProgress(60);
-        
+
         // Refresh uploaded files list
         fetchUploadedFiles();
       }
@@ -255,40 +263,18 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
     }
   };
 
-  const handleSelectPredefinedVoice = async (voice: PredefinedVoice) => {
+  const handleSelectPredefinedVoice = (voice: PredefinedVoice) => {
     if (!isLoggedIn) {
       if (onLoginRequest) onLoginRequest();
       return;
     }
 
+    // Store the selected predefined voice and show naming modal
+    setSelectedPredefinedVoice(voice);
     setVoiceName(voice.name);
+    setReusedFile(null);
+    setSelectedFile(null);
     setUploadStep('naming');
-
-    try {
-      await voiceAPI.create({
-        name: voice.name,
-        audioFileUrl: voice.sample_url,
-        audioFileName: `${voice.name}_sample.mp3`,
-        withTranscript: false,
-      });
-
-      setUploadStep('success');
-
-      if (onVoiceCreated) {
-        onVoiceCreated();
-      }
-
-      setTimeout(() => {
-        handleCancelUpload();
-      }, 2000);
-    } catch (err) {
-      setUploadStep('error');
-      if (err instanceof APIError) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('音色克隆失败，请重试');
-      }
-    }
   };
 
   return (
@@ -447,78 +433,7 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
         </div>
       )}
 
-      {/* Predefined Voices Section */}
-      {isLoggedIn && predefinedVoices.length > 0 && (
-        <div className="flex-1 mt-2">
-          <div className="flex items-center gap-2 px-1 mb-3">
-            <span className="material-symbols-outlined text-primary text-lg">music_note</span>
-            <h4 className="text-xs font-black text-gray-700 uppercase tracking-widest">系统预定义音色</h4>
-          </div>
-
-          <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 custom-scrollbar">
-            {predefinedVoices.map((voice) => (
-              <div
-                key={voice.fish_voice_id}
-                className="group/voice flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-pink-50 to-purple-50 border border-pink-100 hover:border-primary/50 hover:shadow-md transition-all"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="size-8 rounded-lg bg-white flex items-center justify-center text-primary shadow-sm border border-gray-100 group-hover/voice:bg-primary group-hover/voice:text-white transition-colors shrink-0">
-                    <span className="material-symbols-outlined text-base">record_voice_over</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-bold text-[#1c0d14] truncate">{voice.name}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-medium text-gray-400">
-                        {voice.language === 'zh' ? '中文' : voice.language === 'en' ? '英文' : voice.language === 'ja' ? '日文' : '韩文'}
-                      </span>
-                      <span className="text-[9px] font-medium text-gray-400">•</span>
-                      <span className="text-[9px] font-medium text-gray-400">
-                        {voice.gender === 'male' ? '男生' : '女生'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 opacity-0 group-hover/voice:opacity-100 transition-opacity">
-                  {voice.sample_url && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlaySample(voice.fish_voice_id, voice.sample_url);
-                        }}
-                        className="size-7 rounded-lg hover:bg-white hover:text-primary text-gray-400 flex items-center justify-center transition-colors"
-                        title="播放试听"
-                      >
-                        <span className="material-symbols-outlined text-base">
-                          {playingAudio === voice.fish_voice_id ? 'pause' : 'play_arrow'}
-                        </span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownloadSample(voice.sample_url, voice.name);
-                        }}
-                        className="size-7 rounded-lg hover:bg-white hover:text-primary text-gray-400 flex items-center justify-center transition-colors"
-                        title="下载试听"
-                      >
-                        <span className="material-symbols-outlined text-base">download</span>
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => handleSelectPredefinedVoice(voice)}
-                    className="size-7 rounded-lg hover:bg-primary hover:text-white text-gray-400 flex items-center justify-center transition-colors"
-                    title="克隆此音色"
-                  >
-                    <span className="material-symbols-outlined text-base">add_circle</span>
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Predefined Voices Section - Moved to VoiceLibraryView per new requirements */}
 
       {/* Voice Naming Modal */}
       {uploadStep !== 'idle' && (
@@ -536,9 +451,21 @@ const VoiceCloningSection: React.FC<VoiceCloningSectionProps> = ({
                   className="w-full h-12 px-4 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary mb-4"
                   autoFocus
                 />
-                <p className="text-xs text-gray-400 mb-4">
-                  文件: {selectedFile?.name} ({((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB)
-                </p>
+                {selectedFile && (
+                  <p className="text-xs text-gray-400 mb-4">
+                    文件: {selectedFile.name} ({((selectedFile.size || 0) / 1024 / 1024).toFixed(2)} MB)
+                  </p>
+                )}
+                {selectedPredefinedVoice && (
+                  <p className="text-xs text-gray-400 mb-4">
+                    使用预定义音色: {selectedPredefinedVoice.name} ({selectedPredefinedVoice.language === 'zh' ? '中文' : selectedPredefinedVoice.language === 'en' ? '英文' : selectedPredefinedVoice.language === 'ja' ? '日文' : '韩文'} {selectedPredefinedVoice.gender === 'male' ? '男' : '女'})
+                  </p>
+                )}
+                {reusedFile && (
+                  <p className="text-xs text-gray-400 mb-4">
+                    重用文件: {reusedFile.filename}
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <button onClick={handleCancelUpload} className="flex-1 h-11 bg-gray-100 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors">
                     取消

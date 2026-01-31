@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"voice-clone-backend/config"
 	"voice-clone-backend/database"
 	"voice-clone-backend/models"
 
@@ -86,23 +85,40 @@ func GetUserCredits(userID uint) (int, error) {
 
 // 检查并扣除音色克隆费用
 func ChargeForVoiceClone(userID uint, withTranscript bool) (int, error) {
-	// Get user with VIP info
-	var user models.User
-	if err := database.DB.First(&user, userID).Error; err != nil {
-		return 0, err
-	}
-
-	// Calculate cost based on VIP level and transcript option
-	cost := CalculateVoiceCloneCost(user.VIPLevel, withTranscript)
-
-	// Deduct credits
-	err := DeductCredits(userID, cost, "voice_clone", fmt.Sprintf("创建音色，扣除 %d 积分", cost))
-	return cost, err
+	return 0, nil
 }
 
 // 检查并扣除TTS生成费用
-func ChargeForTTSGeneration(userID uint) error {
-	cost := config.AppConfig.Credits.TTSGenerationCost
+func ChargeForTTSGeneration(userID uint, text string) error {
+	// 计算UTF-8字节数
+	byteCount := len([]byte(text))
+
+	// 检查是否超过5000字节限制
+	if byteCount > 5000 {
+		return fmt.Errorf("该输入过长，无法生成语音")
+	}
+
+	// 计算积分：(字节数 / 114000) * 10000
+	cost := int(float64(byteCount) / 114000 * 10000)
+
+	// 四舍五入取整
+	if cost > 0 {
+		cost = int(float64(cost) + 0.5)
+	}
+
+	fmt.Printf("DEBUG: ChargeForTTSGeneration - byteCount: %d, cost: %d\n", byteCount, cost)
+
+	// 检查用户是否是无限积分账户
+	var user models.User
+	if err := database.DB.First(&user, userID).Error; err != nil {
+		return err
+	}
+
+	// 无限积分账户不扣除
+	if user.Credits >= 999999 {
+		return nil
+	}
+
 	return DeductCredits(userID, cost, "tts_generation", fmt.Sprintf("生成语音，扣除 %d 积分", cost))
 }
 

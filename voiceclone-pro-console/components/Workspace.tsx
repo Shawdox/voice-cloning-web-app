@@ -1,9 +1,11 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { INITIAL_VOICES, INITIAL_HISTORY } from '../constants';
+import { PREDEFINED_VOICES } from '../constants/predefinedVoices';
 import { Voice } from '../types';
-import { voiceAPI, ttsAPI } from '../services/api';
-import { TTSTaskResponse } from '../types/api';
+import { voiceAPI, ttsAPI, pointsAPI } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
+import { TTSTaskResponse, PredefinedVoice } from '../types/api';
 import VoiceLibrary from './VoiceLibrary';
 import VoiceCloningSection from './VoiceCloningSection';
 import SpeechSynthesisSection from './SpeechSynthesisSection';
@@ -54,10 +56,27 @@ const Workspace: React.FC<WorkspaceProps> = ({
   onVoiceChange
 }) => {
   const [voices, setVoices] = useState<Voice[]>(INITIAL_VOICES);
+  const [predefinedVoices, setPredefinedVoices] = useState<PredefinedVoice[]>([]);
   const [history, setHistory] = useState(isLoggedIn ? INITIAL_HISTORY : []);
   const [selectedVoiceId, setSelectedVoiceId] = useState(initialSelectedVoiceId);
   const [isGenerating, setIsGenerating] = useState(false);
   const [ttsTasks, setTtsTasks] = useState<TTSTaskResponse[]>([]);
+  const [errorMessage, setErrorMessage] = useState('');
+  const { points, updatePoints } = useAuth();
+
+  // Fetch user points from backend
+  const fetchPoints = useCallback(async () => {
+    if (!isLoggedIn) {
+      return;
+    }
+
+    try {
+      const response = await pointsAPI.getBalance();
+      updatePoints(response.points);
+    } catch (err) {
+      console.error('Failed to fetch points:', err);
+    }
+  }, [isLoggedIn, updatePoints]);
 
   // Fetch user voices from backend
   const fetchVoices = useCallback(async () => {
@@ -86,6 +105,23 @@ const Workspace: React.FC<WorkspaceProps> = ({
     }
   }, [isLoggedIn]);
 
+  // Load predefined voices from hardcoded data (no API call needed)
+  const fetchPredefinedVoices = useCallback(() => {
+    console.log('[DEBUG] Loading hardcoded predefined voices, isLoggedIn:', isLoggedIn);
+
+    if (!isLoggedIn) {
+      console.log('[DEBUG] Not logged in, skipping');
+      setPredefinedVoices([]);
+      return;
+    }
+
+    // Use hardcoded data instead of API call for instant loading
+    console.log('[DEBUG] Setting predefined voices from constants');
+    console.log('[DEBUG] Voices count:', PREDEFINED_VOICES.length);
+    setPredefinedVoices(PREDEFINED_VOICES as PredefinedVoice[]);
+    console.log('[DEBUG] State set successfully');
+  }, [isLoggedIn]); 
+
   // Fetch TTS tasks from backend
   const fetchTTSTasks = useCallback(async () => {
     if (!isLoggedIn) {
@@ -104,8 +140,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
   // Fetch voices on mount and when login status changes
   useEffect(() => {
     fetchVoices();
+    fetchPredefinedVoices();
     fetchTTSTasks();
-  }, [fetchVoices, fetchTTSTasks]);
+    fetchPoints();
+  }, [fetchVoices, fetchPredefinedVoices, fetchTTSTasks, fetchPoints]);
 
   // Poll for training voices status
   useEffect(() => {
@@ -157,32 +195,61 @@ const Workspace: React.FC<WorkspaceProps> = ({
     }
 
     setIsGenerating(true);
+    setErrorMessage('');
     try {
-      const selectedVoice = voices.find(v => v.id === selectedVoiceId);
+      // Search in both user voices and predefined voices
+      const selectedVoice = voices.find(v => v.id === selectedVoiceId) ||
+                            predefinedVoices.find(v => v.fish_voice_id === selectedVoiceId);
+
       if (!selectedVoice) {
         alert('请选择一个音色');
         return;
       }
 
-      // For system voices, use the fish_voice_id directly
-      // For user voices, parse the ID as number
       const normalizedText = normalizeEmotionTags(text);
-      const voiceId = selectedVoice.type === 'system' ? selectedVoice.id : parseInt(selectedVoice.id);
-      
+      const byteCount = new TextEncoder().encode(normalizedText).length;
+      if (byteCount > 5000) {
+        setErrorMessage('该输入过长，无法生成语音');
+        return;
+      }
+
+      const estimatedCost = Math.round((byteCount / 114000) * 10000);
+      if (points < estimatedCost) {
+        setErrorMessage('积分余额不足，请充值');
+        return;
+      }
+
+      // Determine voice ID format based on voice type
+      let voiceId: string | number;
+      if ('fish_voice_id' in selectedVoice) {
+        // Predefined voice: use fish_voice_id (string)
+        voiceId = selectedVoice.fish_voice_id;
+      } else if (selectedVoice.type === 'system') {
+        // System voice: use string ID
+        voiceId = selectedVoice.id;
+      } else {
+        // User voice: use numeric ID
+        voiceId = parseInt(selectedVoice.id);
+      }
+
+      const voiceIdPayload = typeof voiceId === 'string' ? voiceId : Number(voiceId);
       const response = await ttsAPI.create({
-        voiceId,
+        voiceId: voiceIdPayload,
         text: normalizedText,
         emotion: options.emotion,
         speed: options.speed,
-        format: options.format || 'mp3', // 直接使用选择的格式，默认mp3
+        format: options.format || 'mp3',
       });
 
       // Fetch updated TTS tasks list
       await fetchTTSTasks();
+      await fetchPoints();
       alert('语音合成任务已提交，请稍后查看生成历史');
     } catch (err: any) {
       console.error('Failed to create TTS task:', err);
-      alert(err.message || '语音合成失败，请重试');
+      const message = err.message || '语音合成失败，请重试';
+      setErrorMessage(message);
+      alert(message);
     } finally {
       setIsGenerating(false);
     }
@@ -212,10 +279,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
 
             <div className="flex flex-1 md:flex-none justify-end gap-3">
               <div className="flex items-center gap-3 bg-pink-50/50 px-4 py-2 rounded-2xl border border-pink-100 shadow-sm">
-                 <div className="flex flex-col items-end">
+                  <div className="flex flex-col items-end">
                     <span className="text-[10px] font-black text-gray-400 leading-none uppercase tracking-tighter mb-1">可用积分</span>
-                    <span className="text-lg font-black text-primary leading-none">{isLoggedIn ? '850' : '--'}</span>
-                 </div>
+                    <span className="text-lg font-black text-primary leading-none">
+                      {isLoggedIn ? points : '--'}
+                    </span>
+                  </div>
                  <button 
                   onClick={() => !isLoggedIn ? onLoginRequest() : alert('立即进入充值流程')}
                   className="h-10 px-5 bg-primary text-white text-xs font-black rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg shadow-pink-100 flex items-center gap-2"
@@ -244,11 +313,12 @@ const Workspace: React.FC<WorkspaceProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-3">
-              <VoiceLibrary 
-                voices={voices} 
-                selectedVoiceId={selectedVoiceId} 
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-3">
+          <VoiceLibrary
+                voices={voices}
+                predefinedVoices={predefinedVoices}
+                selectedVoiceId={selectedVoiceId}
                 onSelectVoice={(voiceId) => {
                   setSelectedVoiceId(voiceId);
                   if (onVoiceChange) onVoiceChange(voiceId);
@@ -258,6 +328,19 @@ const Workspace: React.FC<WorkspaceProps> = ({
             </div>
 
             <div className="lg:col-span-9 flex flex-col gap-6">
+              {errorMessage && (
+                <div className="bg-red-50 text-red-600 border border-red-100 rounded-xl px-4 py-3 text-sm font-bold flex items-center justify-between gap-4">
+                  <span>{errorMessage}</span>
+                  {errorMessage.includes('积分余额不足') && (
+                    <button
+                      onClick={onViewVip}
+                      className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-black hover:bg-red-600 transition-colors"
+                    >
+                      去充值
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <VoiceCloningSection
                   voices={voices}

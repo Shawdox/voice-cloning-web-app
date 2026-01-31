@@ -154,7 +154,7 @@ export interface TTSTasksListResponse {
 }
 
 export interface CreateTTSRequest {
-  voiceId: number;
+  voiceId: number | string;
   text: string;
   emotion?: string;
   speed?: number;

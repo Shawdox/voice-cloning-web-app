@@ -609,66 +609,98 @@ type PredefinedVoice struct {
 }
 
 // ListPredefinedVoices returns 8 predefined voices: male/female in Chinese, English, Japanese, Korean
+// Hardcoded for performance - no need to fetch from Fish Audio API every time
 func ListPredefinedVoices() ([]PredefinedVoice, error) {
-	predefinedVoiceIDs := []struct {
-		ID       string
-		Language string
-		Gender   string
-	}{
-		{"ca8fb681ce2040958c15ede5eef86177", "zh", "male"},   // 男生中文: 郑翔洲
-		{"7f92f8afb8ec43bf81429cc1c9199cb1", "zh", "female"}, // 女生中文: AD学姐
-		{"802e3bc2b27e49c2995d23ef70e6ac89", "en", "male"},   // 男生英文: Energetic Male
-		{"b545c585f631496c914815291da4e893", "en", "female"}, // 女生英文: Friendly Women
-		{"8f99ad75c8184f1db0c21d3a906445a4", "ja", "male"},   // 男生日文: 士道
-		{"5161d41404314212af1254556477c17d", "ja", "female"}, // 女生日文: 元気な女性
-		{"078c1b6c34714bba92371c3386716823", "ko", "male"},   // 男生韩文: 韩男
-		{"9aae54921dd944948ee08d35f6b5f984", "ko", "female"}, // 女生韩文: 유라-기쁨-
-	}
-
-	voices := make([]PredefinedVoice, 0, len(predefinedVoiceIDs))
-
-	for _, pv := range predefinedVoiceIDs {
-		apiURL := fmt.Sprintf("%s/model/%s", fishClient.BaseURL, pv.ID)
-		statusCode, _, body, err := fishClient.doRequestWithRetry("get_model", func() (*http.Request, error) {
-			req, err := http.NewRequest("GET", apiURL, nil)
-			if err != nil {
-				return nil, err
-			}
-			req.Header.Set("Authorization", "Bearer "+fishClient.APIKey)
-			return req, nil
-		})
-		if err != nil {
-			continue
-		}
-		if statusCode != http.StatusOK {
-			continue
-		}
-
-		var model FishModelEntity
-		if err := json.Unmarshal(body, &model); err != nil {
-			continue
-		}
-
-		sampleURL := ""
-		sampleText := ""
-		if len(model.Samples) > 0 {
-			sampleURL = model.Samples[0].Audio
-			sampleText = model.Samples[0].Text
-		}
-
-		voice := PredefinedVoice{
-			FishVoiceID: model.ID,
-			Name:        model.Title,
-			Description: model.Description,
-			Language:    pv.Language,
-			Gender:      pv.Gender,
-			CoverImage:  model.CoverImage,
-			SampleURL:   sampleURL,
-			SampleText:  sampleText,
-			Tags:        model.Tags,
-		}
-
-		voices = append(voices, voice)
+	// Hardcoded predefined voices with all necessary data
+	voices := []PredefinedVoice{
+		{
+			FishVoiceID: "ca8fb681ce2040958c15ede5eef86177",
+			Name:        "郑翔洲",
+			Description: "专业男声，适合商务和教育内容",
+			Language:    "zh",
+			Gender:      "male",
+			CoverImage:  "coverimage/ca8fb681ce2040958c15ede5eef86177",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/dfb8a41d5bcc419881fed861a121e648.mp3",
+			SampleText:  "在当今快速变化的商业环境中，企业要始终保持创新思维。",
+			Tags:        []string{"男声", "中文", "专业"},
+		},
+		{
+			FishVoiceID: "7f92f8afb8ec43bf81429cc1c9199cb1",
+			Name:        "AD学姐",
+			Description: "温柔女声，适合情感和叙事内容",
+			Language:    "zh",
+			Gender:      "female",
+			CoverImage:  "coverimage/7f92f8afb8ec43bf81429cc1c9199cb1",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/d21a6aa4d72348efa0d17bfd1df81f62.wav",
+			SampleText:  "刀不锋利马太瘦，你拿什么跟我斗",
+			Tags:        []string{"女声", "中文", "温柔", "御姐"},
+		},
+		{
+			FishVoiceID: "802e3bc2b27e49c2995d23ef70e6ac89",
+			Name:        "Energetic Male",
+			Description: "充满活力的英文男声",
+			Language:    "en",
+			Gender:      "male",
+			CoverImage:  "coverimage/802e3bc2b27e49c2995d23ef70e6ac89",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/04c54aec083e49feb366d3ec0578a8f6.mp3",
+			SampleText:  "Hey there! After months of intensive development, Fish Audio 1.5 has just launched.",
+			Tags:        []string{"male", "english", "energetic"},
+		},
+		{
+			FishVoiceID: "b545c585f631496c914815291da4e893",
+			Name:        "Friendly Women",
+			Description: "友好的英文女声",
+			Language:    "en",
+			Gender:      "female",
+			CoverImage:  "coverimage/b545c585f631496c914815291da4e893",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/fb8a6491fb0e44d78fca36b0d357050c.mp3",
+			SampleText:  "Hey there, fabulous AI enthusiasts! I'm thrilled to sparkle through your speakers.",
+			Tags:        []string{"female", "english", "friendly"},
+		},
+		{
+			FishVoiceID: "8f99ad75c8184f1db0c21d3a906445a4",
+			Name:        "士道",
+			Description: "温和的日文男声",
+			Language:    "ja",
+			Gender:      "male",
+			CoverImage:  "coverimage/8f99ad75c8184f1db0c21d3a906445a4",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/f93d9dbd7c644d1aa5316ed97e248098.mp3",
+			SampleText:  "あの、今日は少し忙しいかもしれないけど、できる限り皆の力になりたいと思います。",
+			Tags:        []string{"男声", "日语", "温和"},
+		},
+		{
+			FishVoiceID: "5161d41404314212af1254556477c17d",
+			Name:        "元気な女性",
+			Description: "活泼的日文女声",
+			Language:    "ja",
+			Gender:      "female",
+			CoverImage:  "coverimage/5161d41404314212af1254556477c17d",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/425d7fcc3d524da493fbabd9504ea87d.mp3",
+			SampleText:  "みなさん、こんにちは！最近、新しいドラマの撮影が始まったんですけど、とても楽しく頑張っています。",
+			Tags:        []string{"女声", "日语", "活泼"},
+		},
+		{
+			FishVoiceID: "078c1b6c34714bba92371c3386716823",
+			Name:        "韩男",
+			Description: "温暖的韩文男声",
+			Language:    "ko",
+			Gender:      "male",
+			CoverImage:  "coverimage/078c1b6c34714bba92371c3386716823",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/5edd92ca81684219a7a6482f4c8a253c.mp3",
+			SampleText:  "봄날 아침, 그녀는 창가에 앉아 꽃잎을 바라봤어요.",
+			Tags:        []string{"男声", "韩语", "温暖"},
+		},
+		{
+			FishVoiceID: "9aae54921dd944948ee08d35f6b5f984",
+			Name:        "유라-기쁨-",
+			Description: "愉悦的韩文女声",
+			Language:    "ko",
+			Gender:      "female",
+			CoverImage:  "coverimage/9aae54921dd944948ee08d35f6b5f984",
+			SampleURL:   "https://c97f3361a1c971323738e24f451a0225.r2.cloudflarestorage.com/fish-platform-data/task/e5596d8e455f4278a2e0e8dbc79ff29e.mp3",
+			SampleText:  "젊은 부부의 저녁 식사 시간이었다. 아내는 매일 정성스럽게 요리를 했지만 남편은 휴대폰만 보며 밥을 먹었다.",
+			Tags:        []string{"女声", "韩语", "愉悦"},
+		},
 	}
 
 	return voices, nil
